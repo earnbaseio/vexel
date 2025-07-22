@@ -1,0 +1,107 @@
+Starting frontend debug script...
+Current directory: /Users/tuan/Develop/personal/vexel/vexel/frontend
+Node version: v24.4.1
+NPM version: 11.4.2
+Starting npm run dev...
+Frontend started with PID: 62153
+Frontend debug script completed
+
+> full-stack-fastapi-mongodb-react@0.1.0 dev
+> next dev
+
+   ▲ Next.js 15.3.5
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.0.245:3000
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 1477ms
+ ○ Compiling / ...
+ ✓ Compiled / in 749ms (1051 modules)
+ GET / 200 in 912ms
+ ✓ Compiled /favicon.ico in 65ms (601 modules)
+ GET /favicon.ico 200 in 120ms
+ ✓ Compiled in 698ms (480 modules)
+ ⨯ ./app/page.tsx:9:1
+Module not found: Can't resolve './components/home/ModernHero'
+   7 | import { tokenIsTOTP } from "./lib/utilities"
+   8 | import { token } from "./lib/slices/tokensSlice"
+>  9 | import ModernHero from "./components/home/ModernHero"
+     | ^
+  10 | import InteractiveFeatures from "./components/home/InteractiveFeatures"
+  11 | import AnimatedStats from "./components/home/AnimatedStats"
+  12 | import ModernCTA from "./components/home/ModernCTA"
+
+https://nextjs.org/docs/messages/module-not-found
+ ⨯ ./app/page.tsx:9:1
+Module not found: Can't resolve './components/home/ModernHero'
+   7 | import { tokenIsTOTP } from "./lib/utilities"
+   8 | import { token } from "./lib/slices/tokensSlice"
+>  9 | import ModernHero from "./components/home/ModernHero"
+     | ^
+  10 | import InteractiveFeatures from "./components/home/InteractiveFeatures"
+  11 | import AnimatedStats from "./components/home/AnimatedStats"
+  12 | import ModernCTA from "./components/home/ModernCTA"
+
+https://nextjs.org/docs/messages/module-not-found
+ ⨯ ./app/page.tsx:9:1
+Module not found: Can't resolve './components/home/ModernHero'
+   7 | import { tokenIsTOTP } from "./lib/utilities"
+   8 | import { token } from "./lib/slices/tokensSlice"
+>  9 | import ModernHero from "./components/home/ModernHero"
+     | ^
+  10 | import InteractiveFeatures from "./components/home/InteractiveFeatures"
+  11 | import AnimatedStats from "./components/home/AnimatedStats"
+  12 | import ModernCTA from "./components/home/ModernCTA"
+
+https://nextjs.org/docs/messages/module-not-found
+ ⨯ ./app/page.tsx:9:1
+Module not found: Can't resolve './components/home/ModernHero'
+   7 | import { tokenIsTOTP } from "./lib/utilities"
+   8 | import { token } from "./lib/slices/tokensSlice"
+>  9 | import ModernHero from "./components/home/ModernHero"
+     | ^
+  10 | import InteractiveFeatures from "./components/home/InteractiveFeatures"
+  11 | import AnimatedStats from "./components/home/AnimatedStats"
+  12 | import ModernCTA from "./components/home/ModernCTA"
+
+https://nextjs.org/docs/messages/module-not-found
+ ⨯ ./app/page.tsx:9:1
+Module not found: Can't resolve './components/home/ModernHero'
+   7 | import { tokenIsTOTP } from "./lib/utilities"
+   8 | import { token } from "./lib/slices/tokensSlice"
+>  9 | import ModernHero from "./components/home/ModernHero"
+     | ^
+  10 | import InteractiveFeatures from "./components/home/InteractiveFeatures"
+  11 | import AnimatedStats from "./components/home/AnimatedStats"
+  12 | import ModernCTA from "./components/home/ModernCTA"
+
+https://nextjs.org/docs/messages/module-not-found
+ ⨯ ./app/components/home/ModernCTA.tsx
+Error:   [31mx[0m Unexpected token `section`. Expected jsx identifier
+    ,-[[36;1;4m/Users/tuan/Develop/personal/vexel/vexel/frontend/app/components/home/ModernCTA.tsx[0m:39:1]
+ [2m36[0m |   };
+ [2m37[0m | 
+ [2m38[0m |   return (
+ [2m39[0m |     <section className="relative py-24 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 overflow-hidden">
+    : [35;1m     ^^^^^^^[0m
+ [2m40[0m |       {/* Background Elements */}
+ [2m41[0m |       <div className="absolute inset-0">
+ [2m42[0m |         {/* Animated Gradient Orbs */}
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/components/home/ModernCTA.tsx
+./app/page.tsx
+ ⚠ Found a change in next.config.js. Restarting the server to apply the changes...
+node:internal/process/promises:394
+    triggerUncaughtException(err, true /* fromPromise */);
+    ^
+
+[CanaryOnlyError: The experimental feature "experimental.dynamicIO" can only be enabled when using the latest canary version of Next.js.]
+
+Node.js v24.4.1
+[?25h
