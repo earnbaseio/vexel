@@ -20,7 +20,7 @@ class TestMemoryReasoningAPIEndpoints:
         """Test memory/reasoning chat endpoint"""
         chat_data = {
             "name": "TestMemoryReasoningAgent",
-            "model": "gemini/gemini-1.5-flash",
+            "model": "gemini/gemini-2.5-flash-lite",
             "user_id": "test_user_memory",
             "session_id": "test_session_memory",
             "message": "Hello, I'm learning Python. Can you help me understand functions?",
@@ -54,7 +54,7 @@ class TestMemoryReasoningAPIEndpoints:
         # First message
         chat_data1 = {
             "name": "ContinuityAgent",
-            "model": "gemini/gemini-1.5-flash",
+            "model": "gemini/gemini-2.5-flash-lite",
             "user_id": user_id,
             "session_id": session_id,
             "message": "My name is Alice and I prefer detailed explanations"
@@ -68,7 +68,7 @@ class TestMemoryReasoningAPIEndpoints:
         # Second message in same session
         chat_data2 = {
             "name": "ContinuityAgent",
-            "model": "gemini/gemini-1.5-flash",
+            "model": "gemini/gemini-2.5-flash-lite",
             "user_id": user_id,
             "session_id": session_id,
             "message": "What's my name and how do I like explanations?"
@@ -144,7 +144,7 @@ class TestMemoryReasoningAPIEndpoints:
         """Test async memory/reasoning chat"""
         chat_data = {
             "name": "AsyncMemoryAgent",
-            "model": "gemini/gemini-1.5-flash",
+            "model": "gemini/gemini-2.5-flash-lite",
             "user_id": "async_test_user",
             "message": "Test async memory and reasoning capabilities"
         }
@@ -219,7 +219,7 @@ class TestMemoryReasoningPerformanceAPI:
         
         chat_data = {
             "name": "PerformanceTestAgent",
-            "model": "gemini/gemini-1.5-flash",
+            "model": "gemini/gemini-2.5-flash-lite",
             "user_id": "perf_test_user",
             "message": "Quick performance test for memory and reasoning"
         }
@@ -304,7 +304,7 @@ class TestMemoryReasoningFeatures:
         """Test reasoning with knowledge integration"""
         chat_data = {
             "name": "ReasoningKnowledgeAgent",
-            "model": "gemini/gemini-1.5-flash",
+            "model": "gemini/gemini-2.5-flash-lite",
             "user_id": "reasoning_test_user",
             "message": "Use reasoning to analyze the best sorting algorithm for large datasets",
             "knowledge_sources": [
@@ -367,7 +367,7 @@ class TestMemoryReasoningFeatures:
         """Test explicit reasoning tool usage"""
         chat_data = {
             "name": "ReasoningToolAgent",
-            "model": "gemini/gemini-1.5-flash",
+            "model": "gemini/gemini-2.5-flash-lite",
             "user_id": "reasoning_tool_user",
             "message": "Think step by step about how to design a scalable web application architecture"
         }

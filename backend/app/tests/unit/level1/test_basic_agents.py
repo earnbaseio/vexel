@@ -18,7 +18,7 @@ class TestBasicAgentCreation:
         # Valid configuration
         config = test_data.agent_config()
         assert config["name"] == "TestAgent"
-        assert config["model"] == "gemini/gemini-1.5-flash"
+        assert config["model"] == "gemini/gemini-2.5-flash-lite"
         assert config["user_id"] == "test_user"
         assert isinstance(config["tools"], list)
     

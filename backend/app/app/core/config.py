@@ -83,5 +83,67 @@ class Settings(BaseSettings):
     ANTHROPIC_API_KEY: str | None = None
     GEMINI_API_KEY: str | None = None
 
+    # RAG Optimization Settings
+    ENABLE_SEMANTIC_CHUNKING: bool = True
+    ENABLE_AGENTIC_CHUNKING: bool = True
+    DEFAULT_CHUNK_SIZE: int = 5000
+    DEFAULT_OVERLAP: int = 100
+    MAX_CHUNK_SIZE: int = 10000
+    MIN_CHUNK_SIZE: int = 500
+
+    # Performance Monitoring Settings
+    ENABLE_PERFORMANCE_MONITORING: bool = True
+    METRICS_RETENTION_DAYS: int = 30
+    PERFORMANCE_ALERT_THRESHOLD: float = 10.0
+    MAX_METRICS_IN_MEMORY: int = 10000
+
+    # User Tier Limits
+    FREE_TIER_MONTHLY_LIMIT: int = 50
+    FREE_TIER_MAX_FILE_SIZE_MB: int = 10
+    FREE_TIER_MAX_STORAGE_GB: int = 1
+
+    PREMIUM_TIER_MONTHLY_LIMIT: int = 500
+    PREMIUM_TIER_MAX_FILE_SIZE_MB: int = 50
+    PREMIUM_TIER_MAX_STORAGE_GB: int = 10
+
+    ENTERPRISE_TIER_MONTHLY_LIMIT: int = -1  # Unlimited
+    ENTERPRISE_TIER_MAX_FILE_SIZE_MB: int = 100
+    ENTERPRISE_TIER_MAX_STORAGE_GB: int = 100
+
+    # Chunking Strategy Settings
+    SEMANTIC_CHUNKING_SIMILARITY_THRESHOLD: float = 0.6
+    AGENTIC_CHUNKING_MODEL: str | None = None  # Will use default OpenAI model
+    MARKDOWN_CHUNKING_PRESERVE_HEADERS: bool = True
+
+    # Content Analysis Settings
+    ENABLE_CONTENT_ANALYSIS: bool = True
+    CONTENT_ANALYSIS_TIMEOUT_SECONDS: int = 30
+    AUTO_STRATEGY_SELECTION: bool = True
+
+    # Feature Flags
+    ENABLE_PARALLEL_PROCESSING: bool = True
+    ENABLE_ANALYTICS_DASHBOARD: bool = True
+    ENABLE_ADVANCED_CHUNKING: bool = True
+
+    @field_validator("GEMINI_API_KEY")
+    def validate_gemini_key_for_semantic(cls, v: str | None, info: ValidationInfo) -> str | None:
+        """Validate Gemini API key is available when semantic chunking is enabled"""
+        if info.data.get("ENABLE_SEMANTIC_CHUNKING", True) and not v:
+            import logging
+            logging.getLogger(__name__).warning(
+                "GEMINI_API_KEY not set - semantic chunking will be limited"
+            )
+        return v
+
+    @field_validator("OPENAI_API_KEY")
+    def validate_openai_key_for_agentic(cls, v: str | None, info: ValidationInfo) -> str | None:
+        """Validate OpenAI API key is available when agentic chunking is enabled"""
+        if info.data.get("ENABLE_AGENTIC_CHUNKING", True) and not v:
+            import logging
+            logging.getLogger(__name__).warning(
+                "OPENAI_API_KEY not set - agentic chunking will be disabled"
+            )
+        return v
+
 
 settings = Settings()

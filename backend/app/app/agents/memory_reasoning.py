@@ -102,7 +102,7 @@ class VexelMemoryReasoningAgent:
     def __init__(
         self,
         name: str = "VexelMemoryReasoningAgent",
-        model: str = "gemini/gemini-1.5-flash",
+        model: str = "gemini/gemini-2.5-flash-lite",
         user_id: str = "default_user",
         session_id: Optional[str] = None,
         db_file: str = "tmp/vexel_memory_reasoning.db",
@@ -143,7 +143,7 @@ class VexelMemoryReasoningAgent:
         # Custom memory manager with Gemini
         memory_manager = MemoryManager(
             model=LiteLLM(
-                id="gemini/gemini-1.5-flash",
+                id="gemini/gemini-2.5-flash-lite",
                 api_key=os.getenv("GEMINI_API_KEY"),
                 temperature=0.3
             ),
@@ -160,7 +160,7 @@ class VexelMemoryReasoningAgent:
         # Session summarizer for context compression
         session_summarizer = SessionSummarizer(
             model=LiteLLM(
-                id="gemini/gemini-1.5-flash",
+                id="gemini/gemini-2.5-flash-lite",
                 api_key=os.getenv("GEMINI_API_KEY"),
                 temperature=0.2
             ),
@@ -426,7 +426,7 @@ class VexelMemoryReasoningAgent:
 # Factory function for easy creation
 def create_memory_reasoning_agent(
     name: str = "VexelMemoryReasoningAgent",
-    model: str = "gemini/gemini-1.5-flash",
+    model: str = "gemini/gemini-2.5-flash-lite",
     user_id: str = "default_user",
     session_id: Optional[str] = None,
     knowledge_sources: Optional[List[Dict[str, Any]]] = None,

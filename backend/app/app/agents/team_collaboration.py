@@ -40,7 +40,7 @@ class VexelTeamCollaboration:
         self,
         team_name: str = "VexelTeam",
         mode: Literal["route", "coordinate", "collaborate"] = "coordinate",
-        leader_model: str = "gemini/gemini-2.5-flash-lite-preview-06-17",
+        leader_model: str = "gemini/gemini-2.5-flash-lite",
         user_id: str = "default_user",
         session_id: Optional[str] = None,
         db_file: str = "tmp/vexel_team_collaboration.db",
@@ -80,7 +80,7 @@ class VexelTeamCollaboration:
         # Custom memory manager for team
         memory_manager = MemoryManager(
             model=LiteLLM(
-                id="gemini/gemini-1.5-flash",
+                id="gemini/gemini-2.5-flash-lite",
                 api_key=os.getenv("GEMINI_API_KEY"),
                 temperature=0.3
             ),
@@ -97,7 +97,7 @@ class VexelTeamCollaboration:
         # Session summarizer for team context
         session_summarizer = SessionSummarizer(
             model=LiteLLM(
-                id="gemini/gemini-1.5-flash",
+                id="gemini/gemini-2.5-flash-lite",
                 api_key=os.getenv("GEMINI_API_KEY"),
                 temperature=0.2
             ),
@@ -213,7 +213,7 @@ class VexelTeamCollaboration:
             name="Research Agent",
             role="Expert at finding and analyzing information from various sources",
             model=LiteLLM(
-                id="gemini/gemini-1.5-flash",
+                id="gemini/gemini-2.5-flash-lite",
                 api_key=os.getenv("GEMINI_API_KEY"),
                 temperature=0.3
             ),
@@ -240,7 +240,7 @@ class VexelTeamCollaboration:
             name="Analysis Agent",
             role="Expert at analyzing data, reasoning through problems, and drawing insights",
             model=LiteLLM(
-                id="gemini/gemini-1.5-flash",
+                id="gemini/gemini-2.5-flash-lite",
                 api_key=os.getenv("GEMINI_API_KEY"),
                 temperature=0.4
             ),
@@ -267,7 +267,7 @@ class VexelTeamCollaboration:
             name="Communication Agent",
             role="Expert at synthesizing information and creating clear, engaging presentations",
             model=LiteLLM(
-                id="gemini/gemini-1.5-flash",
+                id="gemini/gemini-2.5-flash-lite",
                 api_key=os.getenv("GEMINI_API_KEY"),
                 temperature=0.6
             ),
@@ -293,7 +293,7 @@ class VexelTeamCollaboration:
             name="Coordination Agent",
             role="Expert at task management, workflow coordination, and team optimization",
             model=LiteLLM(
-                id="gemini/gemini-1.5-flash",
+                id="gemini/gemini-2.5-flash-lite",
                 api_key=os.getenv("GEMINI_API_KEY"),
                 temperature=0.3
             ),
@@ -550,7 +550,7 @@ def create_research_team(
     return VexelTeamCollaboration(
         team_name=team_name,
         mode="coordinate",
-        leader_model="gemini/gemini-1.5-flash",
+        leader_model="gemini/gemini-2.5-flash-lite",
         user_id=user_id,
         knowledge_sources=knowledge_sources,
         **kwargs
@@ -569,7 +569,7 @@ def create_analysis_team(
     return VexelTeamCollaboration(
         team_name=team_name,
         mode="collaborate",
-        leader_model="gemini/gemini-1.5-flash",
+        leader_model="gemini/gemini-2.5-flash-lite",
         user_id=user_id,
         knowledge_sources=knowledge_sources,
         **kwargs
@@ -588,7 +588,7 @@ def create_routing_team(
     return VexelTeamCollaboration(
         team_name=team_name,
         mode="route",
-        leader_model="gemini/gemini-1.5-flash",
+        leader_model="gemini/gemini-2.5-flash-lite",
         user_id=user_id,
         knowledge_sources=knowledge_sources,
         **kwargs

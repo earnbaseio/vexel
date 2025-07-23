@@ -36,12 +36,13 @@ export const knowledgeAPI = {
 
     const formData = new FormData();
     formData.append("file", data.file);
-    
+
     // Add metadata as form fields
     if (data.title) formData.append("title", data.title);
     if (data.description) formData.append("description", data.description);
     if (data.category) formData.append("category", data.category);
     if (data.tags) formData.append("tags", data.tags);
+    formData.append("collection_name", data.collection_id);  // Required collection ID
 
     const response = await fetch(`${apiCore.url}/agents/knowledge/upload`, {
       method: "POST",
@@ -78,6 +79,7 @@ export const knowledgeAPI = {
     if (data.description) formData.append("description", data.description);
     formData.append("category", data.category);
     if (data.tags.length > 0) formData.append("tags", data.tags.join(", "));
+    formData.append("collection_name", data.collection_id);  // Required collection ID
 
     const response = await fetch(`${apiCore.url}/agents/knowledge/upload`, {
       method: "POST",
@@ -112,6 +114,7 @@ export const knowledgeAPI = {
         category: data.category,
         url: data.url,
         tags: data.tags,
+        collection_name: data.collection_id,  // Required collection ID
       }),
     });
 

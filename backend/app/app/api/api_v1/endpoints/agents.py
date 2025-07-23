@@ -16,8 +16,7 @@ logger = logging.getLogger(__name__)
 from app.api.deps import get_current_user
 from app.models.user import User
 
-# VexelUnifiedAgent removed - using direct Agno Agent
-# Legacy agents removed - using direct Agno Agent
+from app.agents.unified_agent import VexelAgent
 from app.agents.knowledge import VexelKnowledgeManager
 from app.agents.cross_file_knowledge import VexelCrossFileKnowledge, knowledge_cache
 from agno.knowledge.combined import CombinedKnowledgeBase
@@ -30,7 +29,7 @@ from app.agents.agentic_workflows import (
     create_parallel_processing_workflow, create_external_integration_workflow,
     create_monitoring_workflow
 )
-from app.agents.base_agent import create_vexel_workflow
+# Removed VexelBaseAgent dependency - using VexelAgenticWorkflow instead
 from app.agents.anti_hallucination import AntiHallucinationGuard, create_safe_agent_instructions
 
 # Global dictionaries to store active agents and workflows
@@ -47,12 +46,11 @@ class KnowledgeSource(BaseModel):
     content: Optional[List[str]] = None  # For text type
     file_ids: Optional[List[str]] = None  # For uploaded_files
     urls: Optional[List[str]] = None     # For url/pdf types
-    collection_id: Optional[str] = None  # For existing collections
-    collection_name: Optional[str] = None  # For existing collections
+    collection_id: Optional[str] = None  # For existing collections (preferred)
 
 class AgentConfig(BaseModel):
     name: str = "VexelAgent"
-    model: str = "gemini/gemini-1.5-flash"
+    model: str = "gemini/gemini-2.5-flash-lite"
     knowledge_sources: Optional[List[KnowledgeSource]] = None
     tools: Optional[List[str]] = None
     instructions: Optional[List[str]] = None
@@ -69,7 +67,7 @@ class UnifiedChatRequest(BaseModel):
 
 class KnowledgeAgentRequest(BaseModel):
     name: str = "VexelKnowledgeAgent"
-    model: str = "gemini/gemini-2.5-flash-lite-preview-06-17"
+    model: str = "gemini/gemini-2.5-flash-lite"
     knowledge_sources: Optional[List[KnowledgeSource]] = None
     message: str
     
@@ -106,7 +104,7 @@ class WorkflowResponse(BaseModel):
 session_agents: Dict[str, Any] = {}
 
 
-def create_combined_knowledge_base_from_sources(sources: List[KnowledgeSource], user_id: str) -> Optional[CombinedKnowledgeBase]:
+async def create_combined_knowledge_base_from_sources(sources: List[KnowledgeSource], user_id: str) -> Optional[CombinedKnowledgeBase]:
     """Create combined knowledge base from multiple sources"""
     if not sources:
         return None
@@ -115,16 +113,29 @@ def create_combined_knowledge_base_from_sources(sources: List[KnowledgeSource], 
 
     for source in sources:
         try:
-            if source.type == "collection" and hasattr(source, 'collection_name') and source.collection_name:
-                # Use existing knowledge collection
-                knowledge_manager = VexelKnowledgeManager(
-                    collection_name=source.collection_name,
-                    user_id=user_id,
-                    unified_collection=True
-                )
-                kb = knowledge_manager.create_unified_knowledge_base()
-                knowledge_bases.append(kb)
-                # Added existing collection successfully
+            if source.type == "collection" and source.collection_id:
+                # Use existing knowledge collection by ID
+                from motor.motor_asyncio import AsyncIOMotorClient
+                from bson import ObjectId
+                import os
+
+                # Get collection info from MongoDB
+                mongodb_url = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
+                client = AsyncIOMotorClient(mongodb_url)
+                db = client.vexel
+
+                collection = await db.knowledge_bases.find_one({
+                    "_id": ObjectId(source.collection_id),
+                    "user_id": ObjectId(user_id)
+                })
+
+                if collection:
+                    qdrant_collection_name = collection.get("qdrant_collection")
+                    knowledge_manager = VexelKnowledgeManager(
+                        collection_name=qdrant_collection_name
+                    )
+                    kb = knowledge_manager.create_unified_knowledge_base()
+                    knowledge_bases.append(kb)
 
             elif source.type == "text" and source.content:
                 # Create text knowledge base
@@ -159,111 +170,78 @@ def create_combined_knowledge_base_from_sources(sources: List[KnowledgeSource], 
     return None
 
 
-def create_agent_from_agent_configuration(agent_config, user_id: str, session_id: str) -> Agent:
-    """Create Agno agent from AgentConfiguration model"""
-    from agno.models.litellm import LiteLLM
-    from agno.agent import Agent
-    from agno.storage.sqlite import SqliteStorage
-    from agno.memory.v2 import Memory
+def create_agent_from_agent_configuration(agent_config, user_id: str, session_id: str) -> VexelAgent:
+    """Create VexelAgent from AgentConfiguration model"""
+    logger.info(f"🏗️ DEBUG: create_agent_from_agent_configuration called")
+    logger.info(f"🏗️ DEBUG: Agent name: {agent_config.name}")
+    logger.info(f"🏗️ DEBUG: User ID: {user_id}")
+    logger.info(f"🏗️ DEBUG: Session ID: {session_id}")
+    logger.info(f"🏗️ DEBUG: Agent config type: {type(agent_config)}")
+    logger.info(f"🏗️ DEBUG: Agent enable_knowledge_search: {getattr(agent_config, 'enable_knowledge_search', 'Not set')}")
 
-    # Create LLM from AgentConfiguration
-    # Get API key from agent config first, fallback to environment
-    api_key = get_api_key_from_config(agent_config.ai_model_provider, agent_config.api_keys)
+    try:
+        knowledge_sources_as_dicts = []
+        if agent_config.knowledge_sources:
+            logger.info(f"🔍 DEBUG: Found {len(agent_config.knowledge_sources)} knowledge sources in config.")
+            print(f"🔍 DEBUG: Agent config knowledge sources: {agent_config.knowledge_sources}")
+            print(f"🔍 DEBUG: Knowledge sources type: {type(agent_config.knowledge_sources)}")
 
-    llm = LiteLLM(
-        id=agent_config.ai_model_id,
-        api_key=api_key,
-        temperature=agent_config.ai_model_parameters.get("temperature", 0.7),
-        max_tokens=agent_config.ai_model_parameters.get("max_tokens", 1000)
-    )
+            for i, ks in enumerate(agent_config.knowledge_sources):
+                print(f"🔍 DEBUG: Processing knowledge source {i+1}: {ks}")
+                print(f"🔍 DEBUG: Knowledge source type: {type(ks)}")
 
-    # Create knowledge base from agent's knowledge sources
-    knowledge_base = None
-    if agent_config.enable_knowledge_search:
-        try:
-            # Safely access knowledge_sources with proper error handling
-            knowledge_sources_list = getattr(agent_config, 'knowledge_sources', [])
-            # Found knowledge sources
+                if hasattr(ks, 'model_dump'):
+                    knowledge_dict = ks.model_dump()
+                    knowledge_sources_as_dicts.append(knowledge_dict)
+                    print(f"🔍 DEBUG: Added knowledge source (model_dump): {knowledge_dict}")
+                elif isinstance(ks, dict):
+                    knowledge_sources_as_dicts.append(ks)
+                    print(f"🔍 DEBUG: Added knowledge source (dict): {ks}")
+                else:
+                    print(f"⚠️ DEBUG: Unknown knowledge source format: {type(ks)}")
+        else:
+            print("⚠️ DEBUG: No knowledge sources found in agent config")
 
-            if knowledge_sources_list:
-                # Convert AgentConfiguration knowledge sources to KnowledgeSource format
-                from app.models.agent import KnowledgeSource
-                knowledge_sources = []
-                for ks in knowledge_sources_list:
-                    # Handle both dict and object formats
-                    if hasattr(ks, 'model_dump'):
-                        ks_dict = ks.model_dump()
-                    elif hasattr(ks, '__dict__'):
-                        ks_dict = ks.__dict__
-                    else:
-                        ks_dict = ks  # Assume it's already a dict
+        print(f"🔍 DEBUG: Final knowledge_sources_as_dicts: {knowledge_sources_as_dicts}")
+        
+        print(f"🏗️ DEBUG: Creating VexelAgent with:")
+        print(f"   - name: {agent_config.name}")
+        print(f"   - model: {agent_config.ai_model_id}")
+        print(f"   - user_id: {user_id}")
+        print(f"   - session_id: {session_id}")
+        print(f"   - knowledge_sources: {len(knowledge_sources_as_dicts)} sources")
 
-                    knowledge_sources.append(KnowledgeSource(**ks_dict))
-
-                knowledge_base = create_combined_knowledge_base_from_sources(knowledge_sources, user_id)
-                # Created knowledge base successfully
-            else:
-                # No knowledge sources found, agent will work without knowledge base
-                pass
-        except Exception:
-            # Error creating knowledge base, agent will continue without it
-            knowledge_base = None
-
-    # Create storage if enabled
-    storage = None
-    if agent_config.storage_config.get("enabled", True):
-        storage = SqliteStorage(
-            table_name=f"unified_agent_{agent_config.name.lower().replace(' ', '_')}",
-            db_file=f"tmp/agent_{user_id}_{session_id}.db"
+        agent = VexelAgent(
+            name=agent_config.name,
+            model=agent_config.ai_model_id,
+            user_id=user_id,
+            session_id=session_id,
+            knowledge_sources=knowledge_sources_as_dicts,
+            tools=None  # Tools are managed internally by VexelAgent
         )
 
-    # Create memory if enabled
-    memory = None
-    if agent_config.enable_memory:
-        from agno.memory.v2.db.sqlite import SqliteMemoryDb
-        memory_db = SqliteMemoryDb(
-            table_name=f"unified_memory_{user_id}",
-            db_file=f"tmp/memory_{user_id}.db"
+        print(f"🏗️ DEBUG: VexelAgent instance created: {type(agent)}")
+        print(f"🏗️ DEBUG: Agent knowledge_bases: {len(agent.knowledge_bases) if hasattr(agent, 'knowledge_bases') else 'No knowledge_bases attr'}")
+        print(f"🏗️ DEBUG: Agent tools: {len(agent.tools) if hasattr(agent, 'tools') else 'No tools attr'}")
+
+        print(f"🏗️ DEBUG: Calling agent.create_agent()...")
+        agent.create_agent()  # This finalizes the agent setup
+
+        print(f"🏗️ DEBUG: Agent creation completed")
+        print(f"🏗️ DEBUG: Final agent type: {type(agent.agent) if hasattr(agent, 'agent') else 'No agent attr'}")
+
+        logger.info(f"✅ DEBUG: Successfully created and finalized agent '{agent.name}'.")
+        return agent
+
+    except Exception as e:
+        logger.error(f"CRITICAL FAILURE: Could not create VexelAgent '{agent_config.name}'. Error: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to initialize agent. This is a critical error. Please check the backend logs for a full traceback. Error summary: {str(e)}"
         )
-        memory = Memory(db=memory_db)
-
-    # Create safe instructions with anti-hallucination guidelines
-    has_knowledge_sources = len(agent_config.knowledge_sources) > 0 if agent_config.knowledge_sources else False
-    safe_instructions = create_safe_agent_instructions(
-        base_instructions=agent_config.instructions,
-        has_knowledge_sources=has_knowledge_sources
-    )
-
-    # Create agent with full capabilities
-    agent = Agent(
-        name=agent_config.name,
-        model=llm,
-        knowledge=knowledge_base,
-        storage=storage,
-        memory=memory,
-        session_id=session_id,
-        user_id=user_id,
-        instructions=safe_instructions,
-        markdown=True,
-        show_tool_calls=True,
-        debug_mode=True
-    )
-
-    # Add reasoning tools if enabled
-    if agent_config.capabilities and "reasoning" in agent_config.capabilities:
-        from app.agents.memory_reasoning import VexelReasoningTools
-        reasoning_toolkit = VexelReasoningTools()
-
-        # Initialize tools list if it doesn't exist
-        if agent.tools is None:
-            agent.tools = []
-
-        agent.tools.extend(reasoning_toolkit.tools)
-
-    return agent
 
 
-def create_agent_from_config(config: AgentConfig, user_id: str, session_id: str) -> Agent:
+async def create_agent_from_config(config: AgentConfig, user_id: str, session_id: str) -> Agent:
     """Create Agno agent from configuration"""
     from agno.models.litellm import LiteLLM
     from agno.agent import Agent
@@ -280,7 +258,7 @@ def create_agent_from_config(config: AgentConfig, user_id: str, session_id: str)
     # Create knowledge base
     knowledge_base = None
     if config.knowledge_sources:
-        knowledge_base = create_combined_knowledge_base_from_sources(config.knowledge_sources, user_id)
+        knowledge_base = await create_combined_knowledge_base_from_sources(config.knowledge_sources, user_id)
 
     # Create storage
     storage = None
@@ -371,12 +349,10 @@ async def get_agents_info(current_user: User = Depends(get_current_user)):
         },
         "supported_models": {
             "gemini": [
-                "gemini/gemini-2.5-flash-lite-preview-06-17",
-                "gemini/gemini-1.5-flash",
-                "gemini/gemini-1.5-pro"
+                "gemini/gemini-2.5-flash-lite"
             ],
             "embeddings": ["gemini/gemini-embedding-001"],
-            "note": "Vexel configured to use Gemini models exclusively"
+            "note": "Vexel uses latest Gemini 2.0 Flash Exp model exclusively"
         },
         "active_agents": len(active_agents),
         "active_workflows": len(active_workflows)
@@ -384,15 +360,15 @@ async def get_agents_info(current_user: User = Depends(get_current_user)):
 
 
 @router.post("/chat", response_model=UnifiedChatResponse)
-async def unified_chat(
+async def agent_chat(
     request: UnifiedChatRequest,
     current_user: User = Depends(get_current_user)
 ):
     """
-    Universal chat endpoint with session management
+    Agent chat endpoint with session management
     Requires existing agent_id and supports conversation continuity
     """
-    logger.info(f"Starting unified_chat with agent_id: {request.agent_id}")
+    logger.info(f"Starting agent_chat with agent_id: {request.agent_id}")
     try:
         from app.crud.crud_chat import crud_chat_conversation, crud_message
         from app.crud.crud_agent import crud_agent_configuration
@@ -452,10 +428,10 @@ async def unified_chat(
             conversation_data = ChatConversationCreate(
                 conversation_id=conversation_id,
                 title="New Chat",
-                user_id=current_user.id,
-                agent_id=agent_object_id,  # Use actual agent_id
+                user_id=current_user.id,  # Keep as ObjectId
+                agent_id=agent_object_id,  # Keep as ObjectId
                 agent_session_id=agent_session_id,
-                agent_config_snapshot=agent_config.model_dump()  # Store AgentConfiguration
+                agent_config_snapshot=agent_config.model_dump(mode='json')  # Store AgentConfiguration with JSON serialization
             )
 
             conversation = await crud_chat_conversation.create(db, obj_in=conversation_data)
@@ -469,14 +445,19 @@ async def unified_chat(
             session_agents[conversation_id] = agent
 
         # Chat with agent
-        response = agent.run(
-            request.message,
-            user_id=str(current_user.id),
-            session_id=conversation.agent_session_id
-        )
+        print(f"💬 DEBUG: Starting chat with agent")
+        print(f"💬 DEBUG: Agent type: {type(agent)}")
+        print(f"💬 DEBUG: Message: '{request.message[:100]}...'")
 
-        # Extract response content
-        response_content = response.content if hasattr(response, 'content') else str(response)
+        response = agent.chat(request.message)
+
+        print(f"💬 DEBUG: Chat response received")
+        print(f"💬 DEBUG: Response type: {type(response)}")
+        print(f"💬 DEBUG: Response length: {len(str(response)) if response else 0}")
+
+        # Extract response content (VexelAgent.chat returns string)
+        response_content = response if isinstance(response, str) else str(response)
+        print(f"💬 DEBUG: Final response content length: {len(response_content)}")
 
         # Validate response for potential hallucination
         has_knowledge_sources = len(agent_config.knowledge_sources) > 0 if agent_config.knowledge_sources else False
@@ -609,7 +590,7 @@ async def get_agent_info(
         "models_supported": [
             "gpt-4", "gpt-3.5-turbo", "gpt-4-turbo",
             "anthropic/claude-3-sonnet", "anthropic/claude-3-haiku", "anthropic/claude-3-opus",
-            "gemini/gemini-1.5-flash", "gemini/gemini-1.5-pro", "gemini/gemini-2.5-flash-lite-preview-06-17"
+gemini/gemini-2.5-flash-lite
         ]
     }
 
@@ -630,13 +611,17 @@ async def execute_workflow(
                 detail="OpenAI API key not configured for workflow execution"
             )
         
-        # Create workflow
-        workflow = create_vexel_workflow(name=request.name)
+        # Create advanced agentic workflow (Level 5)
+        workflow = VexelAgenticWorkflow(
+            workflow_name=request.name,
+            user_id=str(current_user.id),
+            session_id=f"workflow_{request.name}_{str(current_user.id)}"
+        )
         workflow_key = f"{request.name}_{request.task[:50]}"
         active_workflows[workflow_key] = workflow
-        
+
         # Execute workflow
-        result = await workflow.run(request.task)
+        result = await workflow.execute_workflow(request.task)
         
         return WorkflowResponse(
             workflow_name=request.name,
@@ -709,22 +694,45 @@ async def remove_workflow(workflow_key: str, current_user: User = Depends(get_cu
 
 
 # ============================================================================
-# KNOWLEDGE/STORAGE ENDPOINTS (Level 2)
+# KNOWLEDGE/STORAGE ENDPOINTS (Level 2) - COMMENTED OUT TO AVOID CONFLICTS
+# Use /api/v1/knowledge/* endpoints instead
 # ============================================================================
 
-@router.get("/knowledge/collections")
-async def get_knowledge_collections_info(current_user: User = Depends(get_current_user)):
+# COMMENTED OUT: Duplicate endpoint - use /api/v1/knowledge/collections instead
+# @router.get("/knowledge/collections")
+# async def get_knowledge_collections_info(current_user: User = Depends(get_current_user)):
     """
-    Get information about Qdrant collections
+    Get user's knowledge collections with IDs
     """
     try:
-        knowledge_manager = VexelKnowledgeManager()
-        collections_info = knowledge_manager.get_collections_info()
+        from motor.motor_asyncio import AsyncIOMotorClient
+        from bson import ObjectId
+        import os
+
+        # Connect to MongoDB
+        mongodb_url = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
+        client = AsyncIOMotorClient(mongodb_url)
+        db = client.vexel
+
+        # Get user's collections from database
+        user_collections = await db.knowledge_bases.find({
+            "user_id": ObjectId(current_user.id)
+        }).to_list(None)
+
+        collections_list = []
+        for collection in user_collections:
+            collections_list.append({
+                "id": str(collection["_id"]),
+                "name": collection["name"],
+                "type": collection["type"],
+                "created_at": collection.get("created_at", "").isoformat() if collection.get("created_at") else None,
+                "qdrant_collection": collection.get("qdrant_collection")
+            })
 
         return {
-            "message": "Knowledge collections retrieved",
-            "qdrant_url": "http://localhost:6333",
-            "collections": collections_info,
+            "message": "User collections retrieved",
+            "collections": collections_list,
+            "total": len(collections_list),
             "status": "success"
         }
 
@@ -862,6 +870,7 @@ class FileUploadResponse(BaseModel):
     filename: str
     file_type: str
     collection_name: str
+    collection_id: str  # Add collection_id
     documents_processed: int
     file_size_bytes: int
     upload_timestamp: str
@@ -871,6 +880,7 @@ class FileUploadResponse(BaseModel):
 
 class FileMetadata(BaseModel):
     collection_name: str
+    collection_id: str  # Add collection_id
     filename: str
     file_type: str
     file_size_bytes: int
@@ -887,167 +897,8 @@ class FileSearchRequest(BaseModel):
     limit: int = 10
 
 
-@router.post("/knowledge/upload", response_model=FileUploadResponse)
-async def upload_file_for_rag(
-    file: UploadFile = File(...),
-    collection_name: Optional[str] = None,
-    current_user: User = Depends(get_current_user)
-):
-    """
-    Upload a file for RAG processing
-    Supports: PDF, TXT, CSV, JSON, DOCX files
-    """
-    try:
-        import time
-        start_time = time.time()
-
-        # Validate file type
-        supported_types = {
-            "application/pdf": "pdf",
-            "text/plain": "txt",
-            "text/csv": "csv",
-            "application/json": "json",
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx"
-        }
-
-        if file.content_type not in supported_types:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Unsupported file type: {file.content_type}. Supported types: {list(supported_types.values())}"
-            )
-
-        file_type = supported_types[file.content_type]
-
-        # Generate file ID for unified collection
-        filename_without_ext = file.filename.rsplit('.', 1)[0] if '.' in file.filename else file.filename
-        file_id = f"file_{filename_without_ext}_{current_user.id}"
-
-        # Use unified collection for all uploads
-        collection_name = "vexel_knowledge_base"
-
-        # Read file content
-        contents = await file.read()
-        file_buffer = BytesIO(contents)
-        file_buffer.name = file.filename
-
-        # Process file based on type
-        documents = []
-
-        if file_type == "pdf":
-            from agno.document.reader.pdf_reader import PDFReader
-            reader = PDFReader()
-            documents = reader.read(file_buffer)
-
-        elif file_type == "txt":
-            from agno.document.reader.text_reader import TextReader
-            reader = TextReader()
-            documents = reader.read(file_buffer)
-
-        elif file_type == "csv":
-            from agno.document.reader.csv_reader import CSVReader
-            reader = CSVReader()
-            documents = reader.read(file_buffer)
-
-        elif file_type == "json":
-            from agno.document.reader.json_reader import JSONReader
-            reader = JSONReader()
-            documents = reader.read(file_buffer)
-
-        elif file_type == "docx":
-            from agno.document.reader.docx_reader import DocxReader
-            reader = DocxReader()
-            documents = reader.read(file_buffer)
-
-        if not documents:
-            raise HTTPException(
-                status_code=400,
-                detail="No content could be extracted from the file"
-            )
-
-        # Create knowledge manager with unified collection
-        knowledge_manager = VexelKnowledgeManager(
-            collection_name=collection_name,
-            user_id=str(current_user.id),
-            unified_collection=True
-        )
-
-        # Create knowledge base from documents with enhanced metadata
-        from agno.knowledge.document import DocumentKnowledgeBase
-
-        # Add user and file metadata to each document
-        for i, doc in enumerate(documents):
-            if not hasattr(doc, 'meta_data') or doc.meta_data is None:
-                doc.meta_data = {}
-
-            doc.meta_data.update({
-                "user_id": str(current_user.id),
-                "file_id": file_id,
-                "filename": file.filename,
-                "file_type": file_type,
-                "chunk_id": i,
-                "upload_timestamp": datetime.utcnow().isoformat(),
-                "text_snippet": doc.content[:200] + "..." if len(doc.content) > 200 else doc.content
-            })
-
-        knowledge_base = DocumentKnowledgeBase(
-            documents=documents,
-            vector_db=knowledge_manager.vector_db
-        )
-
-        # Load documents into vector database
-        knowledge_base.load(recreate=False, upsert=True)
-
-        # Store file metadata in MongoDB
-        import time
-
-        file_metadata = {
-            "collection_name": collection_name,  # Now unified collection
-            "file_id": file_id,  # Unique file identifier
-            "filename": file.filename,
-            "file_type": file_type,
-            "file_size_bytes": len(contents),
-            "upload_timestamp": datetime.utcnow().isoformat(),
-            "documents_count": len(documents),
-            "user_id": str(current_user.id),
-            "metadata": {
-                "content_type": file.content_type,
-                "processing_time": time.time() - start_time if 'start_time' in locals() else 0,
-                "embedder": "gemini-text-embedding-004",
-                "vector_db": "qdrant",
-                "unified_collection": True
-            }
-        }
-
-        # Save metadata to MongoDB
-        try:
-            from app.api.deps import get_database
-            db = get_database()
-            await db.file_metadata.insert_one(file_metadata)
-        except Exception:
-            # Failed to save metadata, continuing
-            pass
-
-        return FileUploadResponse(
-            message=f"File '{file.filename}' processed successfully",
-            filename=file.filename,
-            file_type=file_type,
-            collection_name=collection_name,
-            documents_processed=len(documents),
-            file_size_bytes=len(contents),
-            upload_timestamp=file_metadata["upload_timestamp"],
-            metadata=file_metadata["metadata"],
-            status="success"
-        )
-
-    except Exception as e:
-        import traceback
-        error_details = traceback.format_exc()
-        logger.error(f"ERROR: Failed to process file: {str(e)}")
-        logger.error(f"ERROR: Traceback: {error_details}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to process file: {str(e)}\n\nTraceback: {error_details}"
-        )
+# REMOVED: Duplicate upload endpoint - use /api/v1/knowledge/upload instead
+# This endpoint conflicts with the main knowledge upload endpoint
 
 
 @router.get("/knowledge/files")
@@ -1467,7 +1318,7 @@ async def team_collaboration_run(request: dict, current_user: User = Depends(get
         # Extract request parameters
         team_name = request.get("team_name", "VexelTeam")
         mode = request.get("mode", "coordinate")  # route, coordinate, collaborate
-        leader_model = request.get("leader_model", "gemini/gemini-1.5-flash")
+        leader_model = request.get("leader_model", "gemini/gemini-2.5-flash-lite")
         user_id = request.get("user_id", "default_user")
         session_id = request.get("session_id")
         knowledge_sources = request.get("knowledge_sources", [])

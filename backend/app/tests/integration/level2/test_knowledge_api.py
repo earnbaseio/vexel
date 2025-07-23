@@ -78,7 +78,7 @@ class TestKnowledgeAPIEndpoints:
         """Test knowledge-enabled agent chat"""
         chat_data = {
             "name": "KnowledgeTestAgent",
-            "model": "gemini/gemini-1.5-flash",
+            "model": "gemini/gemini-2.5-flash-lite",
             "message": "What do you know about artificial intelligence?",
             "knowledge_sources": [
                 {
@@ -300,7 +300,7 @@ class TestKnowledgeAgentAPI:
         """Test agent with single knowledge source"""
         chat_data = {
             "name": "SingleKnowledgeAgent",
-            "model": "gemini/gemini-1.5-flash",
+            "model": "gemini/gemini-2.5-flash-lite",
             "message": "What information do you have?",
             "knowledge_sources": [
                 {
@@ -327,7 +327,7 @@ class TestKnowledgeAgentAPI:
         """Test agent with multiple knowledge sources"""
         chat_data = {
             "name": "MultiKnowledgeAgent",
-            "model": "gemini/gemini-1.5-flash",
+            "model": "gemini/gemini-2.5-flash-lite",
             "message": "Tell me about AI and quantum computing",
             "knowledge_sources": [
                 {
@@ -361,7 +361,7 @@ class TestKnowledgeAgentAPI:
         """Test knowledge agent with search integration"""
         chat_data = {
             "name": "SearchKnowledgeAgent",
-            "model": "gemini/gemini-1.5-flash",
+            "model": "gemini/gemini-2.5-flash-lite",
             "message": "Search for information about machine learning",
             "knowledge_sources": [
                 {

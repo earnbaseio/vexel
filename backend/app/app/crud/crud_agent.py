@@ -40,7 +40,7 @@ class AgentConfiguration(Model):
 
     # Model Configuration
     ai_model_provider: str = Field(default="gemini")
-    ai_model_id: str = Field(default="gemini/gemini-2.5-flash-lite-preview-06-17")
+    ai_model_id: str = Field(default="gemini/gemini-2.5-flash-lite")
     ai_model_parameters: Dict[str, Any] = Field(default_factory=lambda: {
         "temperature": 0.7,
         "max_tokens": 1000
@@ -53,7 +53,7 @@ class AgentConfiguration(Model):
     available_models: Optional[Dict[str, List[str]]] = Field(default_factory=lambda: {
         "openai": ["gpt-4", "gpt-4-turbo", "gpt-3.5-turbo"],
         "anthropic": ["claude-3-5-sonnet-20241022", "claude-3-haiku-20240307", "claude-3-opus-20240229"],
-        "gemini": ["gemini/gemini-2.5-flash-lite-preview-06-17", "gemini/gemini-1.5-pro", "gemini/gemini-1.5-flash"]
+        "gemini": ["gemini/gemini-2.5-flash-lite"]
     })
 
     # Agent Capabilities

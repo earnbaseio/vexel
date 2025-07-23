@@ -3,11 +3,24 @@ File processing utilities for knowledge management
 """
 from typing import List, Any
 import io
-import PyPDF2
-import docx
 import json
 import csv
 from agno.document import Document
+
+# Optional imports for file processing
+try:
+    import pypdf as PyPDF2  # Use pypdf package with PyPDF2 alias for compatibility
+    HAS_PDF_SUPPORT = True
+except ImportError:
+    PyPDF2 = None
+    HAS_PDF_SUPPORT = False
+
+try:
+    import docx
+    HAS_DOCX_SUPPORT = True
+except ImportError:
+    docx = None
+    HAS_DOCX_SUPPORT = False
 
 
 def process_uploaded_file(file_content: bytes, filename: str, content_type: str) -> List[Document]:
@@ -18,10 +31,14 @@ def process_uploaded_file(file_content: bytes, filename: str, content_type: str)
     
     try:
         if content_type == "application/pdf" or filename.lower().endswith('.pdf'):
+            if not HAS_PDF_SUPPORT:
+                raise ValueError("PDF processing not available. Please install pypdf package.")
             documents = process_pdf(file_content, filename)
         elif content_type == "text/plain" or filename.lower().endswith('.txt'):
             documents = process_text(file_content, filename)
         elif content_type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document" or filename.lower().endswith('.docx'):
+            if not HAS_DOCX_SUPPORT:
+                raise ValueError("DOCX processing not available. Please install python-docx package.")
             documents = process_docx(file_content, filename)
         elif content_type == "application/json" or filename.lower().endswith('.json'):
             documents = process_json(file_content, filename)
@@ -59,8 +76,11 @@ def process_uploaded_file(file_content: bytes, filename: str, content_type: str)
 
 def process_pdf(file_content: bytes, filename: str) -> List[Document]:
     """Process PDF file"""
+    if not HAS_PDF_SUPPORT:
+        raise ValueError("PDF processing not available. Please install pypdf package.")
+
     documents = []
-    
+
     try:
         pdf_file = io.BytesIO(file_content)
         pdf_reader = PyPDF2.PdfReader(pdf_file)
@@ -131,6 +151,9 @@ def process_text(file_content: bytes, filename: str) -> List[Document]:
 
 def process_docx(file_content: bytes, filename: str) -> List[Document]:
     """Process DOCX file"""
+    if not HAS_DOCX_SUPPORT:
+        raise ValueError("DOCX processing not available. Please install python-docx package.")
+
     try:
         docx_file = io.BytesIO(file_content)
         doc = docx.Document(docx_file)

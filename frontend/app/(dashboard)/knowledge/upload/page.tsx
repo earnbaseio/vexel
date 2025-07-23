@@ -66,7 +66,14 @@ export default function UploadKnowledge() {
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+
+    // Redirect to collection-based workflow
+    const timer = setTimeout(() => {
+      router.push("/knowledge");
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, [router]);
 
   useEffect(() => {
     if (mounted && !isLoggedIn) {
@@ -327,6 +334,43 @@ export default function UploadKnowledge() {
           <p className="mt-2 text-gray-600">
             Add documents and information to your knowledge base
           </p>
+        </div>
+
+        {/* Deprecation Notice */}
+        <div className="mb-8 bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+          <div className="flex">
+            <ExclamationTriangleIcon className="h-6 w-6 text-yellow-400" />
+            <div className="ml-3">
+              <h3 className="text-lg font-medium text-yellow-800">
+                Upload Workflow Updated
+              </h3>
+              <div className="mt-2 text-sm text-yellow-700">
+                <p>
+                  We've improved the upload experience! Files now need to be uploaded to specific collections
+                  for better organization (similar to Claude Projects).
+                </p>
+                <p className="mt-2">
+                  <strong>New workflow:</strong>
+                </p>
+                <ol className="mt-1 list-decimal list-inside space-y-1">
+                  <li>Create or select a collection</li>
+                  <li>Click "Add Files" in the collection</li>
+                  <li>Upload your files to that collection</li>
+                </ol>
+                <p className="mt-3">
+                  Redirecting you to the new workflow in 3 seconds...
+                </p>
+              </div>
+              <div className="mt-4">
+                <button
+                  onClick={() => router.push("/knowledge")}
+                  className="bg-yellow-100 hover:bg-yellow-200 text-yellow-800 px-4 py-2 rounded-md text-sm font-medium"
+                >
+                  Go to Collections Now
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Upload Progress */}

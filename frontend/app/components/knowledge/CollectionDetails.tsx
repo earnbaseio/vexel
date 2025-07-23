@@ -26,6 +26,7 @@ import {
 import { IKnowledgeCollection, CollectionType, KnowledgeCategory, KnowledgeFileType } from "@/app/lib/interfaces";
 import { format } from "date-fns";
 import CollectionShareButton from "./CollectionShareButton";
+import CollectionUploadModal from "./CollectionUploadModal";
 
 // Import the existing KnowledgeCard component
 // We'll assume it exists from the original knowledge page
@@ -83,6 +84,7 @@ export default function CollectionDetails({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<KnowledgeCategory | ''>('');
   const [selectedFileType, setSelectedFileType] = useState<KnowledgeFileType | ''>('');
+  const [showUploadModal, setShowUploadModal] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
 
   // Load collection details on mount
@@ -227,7 +229,7 @@ export default function CollectionDetails({
             {/* Action Buttons */}
             <div className="flex items-center space-x-3">
               <button
-                onClick={() => console.log('Add files to collection')}
+                onClick={() => setShowUploadModal(true)}
                 className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
               >
                 <PlusIcon className="h-4 w-4 mr-2" />
@@ -369,6 +371,19 @@ export default function CollectionDetails({
           </p>
         </div>
       )}
+
+      {/* Upload Modal */}
+      <CollectionUploadModal
+        isOpen={showUploadModal}
+        onClose={() => setShowUploadModal(false)}
+        collection={collection}
+        onUploadSuccess={() => {
+          // Refresh collection details
+          if (collection.id) {
+            dispatch(getCollectionDetails(collection.id));
+          }
+        }}
+      />
     </div>
   );
 }

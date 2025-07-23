@@ -49,7 +49,7 @@ Content-Type: application/json
   "supported_models": {
     "gemini": [
       "gemini/gemini-2.5-flash-lite-preview-06-17",
-      "gemini/gemini-1.5-flash",
+      "gemini/gemini-2.5-flash-lite",
       "gemini/gemini-1.5-pro"
     ],
     "embeddings": [

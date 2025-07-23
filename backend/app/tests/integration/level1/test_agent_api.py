@@ -20,7 +20,7 @@ class TestAgentAPIEndpoints:
         """Test agent creation via API"""
         agent_data = {
             "name": "APITestAgent",
-            "model": "gemini/gemini-1.5-flash",
+            "model": "gemini/gemini-2.5-flash-lite",
             "instructions": "You are a test agent created via API",
             "tools": ["search"],
             "user_id": "api_test_user"
@@ -37,7 +37,7 @@ class TestAgentAPIEndpoints:
         """Test agent chat endpoint"""
         chat_data = {
             "name": "ChatTestAgent",
-            "model": "gemini/gemini-1.5-flash",
+            "model": "gemini/gemini-2.5-flash-lite",
             "message": "Hello, can you help me with a test?",
             "user_id": "chat_test_user"
         }
@@ -72,7 +72,7 @@ class TestAgentAPIEndpoints:
         """Test async agent chat"""
         chat_data = {
             "name": "AsyncChatAgent",
-            "model": "gemini/gemini-1.5-flash", 
+            "model": "gemini/gemini-2.5-flash-lite", 
             "message": "This is an async test message",
             "user_id": "async_test_user"
         }
@@ -143,7 +143,7 @@ class TestAgentPerformanceAPI:
         
         chat_data = {
             "name": "PerformanceTestAgent",
-            "model": "gemini/gemini-1.5-flash",
+            "model": "gemini/gemini-2.5-flash-lite",
             "message": "Quick performance test",
             "user_id": "perf_test_user"
         }
@@ -168,7 +168,7 @@ class TestAgentPerformanceAPI:
         
         chat_data = {
             "name": "ConcurrentTestAgent",
-            "model": "gemini/gemini-1.5-flash",
+            "model": "gemini/gemini-2.5-flash-lite",
             "message": "Concurrent test message",
             "user_id": "concurrent_test_user"
         }
@@ -198,7 +198,7 @@ class TestAgentToolsAPI:
         """Test agent with search tool"""
         chat_data = {
             "name": "SearchAgent",
-            "model": "gemini/gemini-1.5-flash",
+            "model": "gemini/gemini-2.5-flash-lite",
             "message": "Search for information about Python programming",
             "tools": ["duckduckgo_search"],
             "user_id": "search_test_user"
@@ -215,7 +215,7 @@ class TestAgentToolsAPI:
         """Test agent with multiple tools"""
         chat_data = {
             "name": "MultiToolAgent",
-            "model": "gemini/gemini-1.5-flash",
+            "model": "gemini/gemini-2.5-flash-lite",
             "message": "Help me with calculations and search",
             "tools": ["duckduckgo_search", "calculator"],
             "user_id": "multitool_test_user"
@@ -231,7 +231,7 @@ class TestAgentToolsAPI:
         """Test agent without tools"""
         chat_data = {
             "name": "NoToolsAgent",
-            "model": "gemini/gemini-1.5-flash",
+            "model": "gemini/gemini-2.5-flash-lite",
             "message": "Just answer this question without tools",
             "tools": [],
             "user_id": "notool_test_user"
@@ -256,7 +256,7 @@ class TestAgentSessionAPI:
         # First message
         chat_data1 = {
             "name": "SessionAgent",
-            "model": "gemini/gemini-1.5-flash",
+            "model": "gemini/gemini-2.5-flash-lite",
             "message": "Remember that my name is Alice",
             "user_id": "session_test_user",
             "session_id": session_id
@@ -270,7 +270,7 @@ class TestAgentSessionAPI:
         # Second message in same session
         chat_data2 = {
             "name": "SessionAgent",
-            "model": "gemini/gemini-1.5-flash",
+            "model": "gemini/gemini-2.5-flash-lite",
             "message": "What is my name?",
             "user_id": "session_test_user",
             "session_id": session_id
@@ -289,7 +289,7 @@ class TestAgentSessionAPI:
         # Session 1
         chat_data1 = {
             "name": "IsolationAgent",
-            "model": "gemini/gemini-1.5-flash",
+            "model": "gemini/gemini-2.5-flash-lite",
             "message": "My favorite color is blue",
             "user_id": "isolation_test_user1",
             "session_id": "session_1"
@@ -301,7 +301,7 @@ class TestAgentSessionAPI:
         # Session 2 (different user)
         chat_data2 = {
             "name": "IsolationAgent",
-            "model": "gemini/gemini-1.5-flash",
+            "model": "gemini/gemini-2.5-flash-lite",
             "message": "What is my favorite color?",
             "user_id": "isolation_test_user2",
             "session_id": "session_2"
@@ -329,7 +329,7 @@ class TestAgentStressAPI:
         async def make_request(request_id: int):
             chat_data = {
                 "name": f"StressAgent_{request_id}",
-                "model": "gemini/gemini-1.5-flash",
+                "model": "gemini/gemini-2.5-flash-lite",
                 "message": f"Stress test message {request_id}",
                 "user_id": f"stress_user_{request_id}"
             }

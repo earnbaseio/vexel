@@ -163,7 +163,7 @@ def sample_agent_config():
     """Sample agent configuration"""
     return {
         "name": "TestAgent",
-        "model": "gemini/gemini-1.5-flash",
+        "model": "gemini/gemini-2.5-flash-lite",
         "instructions": "You are a helpful test agent",
         "tools": [],
         "user_id": "test_user",
@@ -191,19 +191,19 @@ def sample_team_config():
     return {
         "team_name": "TestTeam",
         "mode": "coordinate",
-        "leader_model": "gemini/gemini-1.5-flash",
+        "leader_model": "gemini/gemini-2.5-flash-lite",
         "user_id": "test_user",
         "agents": {
             "researcher": {
                 "name": "Research Agent",
                 "role": "Expert at finding information",
-                "model": "gemini/gemini-1.5-flash",
+                "model": "gemini/gemini-2.5-flash-lite",
                 "tools": ["duckduckgo_search"]
             },
             "analyst": {
                 "name": "Analysis Agent", 
                 "role": "Expert at analyzing data",
-                "model": "gemini/gemini-1.5-flash",
+                "model": "gemini/gemini-2.5-flash-lite",
                 "tools": ["think", "analyze"]
             }
         }
@@ -224,7 +224,7 @@ def sample_workflow_config():
                 "step_type": "agent",
                 "config": {
                     "name": "TestAgent",
-                    "model": "gemini/gemini-1.5-flash"
+                    "model": "gemini/gemini-2.5-flash-lite"
                 },
                 "next_steps": ["step2"]
             },
@@ -234,7 +234,7 @@ def sample_workflow_config():
                 "step_type": "agent",
                 "config": {
                     "name": "TestAgent2",
-                    "model": "gemini/gemini-1.5-flash"
+                    "model": "gemini/gemini-2.5-flash-lite"
                 }
             }
         ]

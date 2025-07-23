@@ -1,0 +1,218 @@
+# Docker Compose for Vexel RAG Optimization System
+# Enhanced configuration with RAG optimization features
+
+version: '3.8'
+
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:7.0
+    container_name: vexel-mongodb-rag
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password123
+      MONGO_INITDB_DATABASE: vexel
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - ./scripts/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    networks:
+      - vexel-network
+
+  # Qdrant Vector Database
+  qdrant:
+    image: qdrant/qdrant:v1.7.0
+    container_name: vexel-qdrant-rag
+    restart: unless-stopped
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    environment:
+      QDRANT__SERVICE__HTTP_PORT: 6333
+      QDRANT__SERVICE__GRPC_PORT: 6334
+    networks:
+      - vexel-network
+
+  # Redis for Caching and Session Management
+  redis:
+    image: redis:7.2-alpine
+    container_name: vexel-redis-rag
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - vexel-network
+
+  # Vexel Backend with RAG Optimization
+  backend:
+    build:
+      context: .
+      dockerfile: backend.dockerfile
+      args:
+        INSTALL_JUPYTER: "false"
+    container_name: vexel-backend-rag
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      # Database Configuration
+      MONGO_DATABASE: vexel
+      MONGO_DATABASE_URI: mongodb://admin:password123@mongodb:27017/vexel?authSource=admin
+      
+      # API Keys (set these in your .env file)
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      
+      # RAG Optimization Settings
+      ENABLE_SEMANTIC_CHUNKING: "true"
+      ENABLE_AGENTIC_CHUNKING: "true"
+      DEFAULT_CHUNK_SIZE: "5000"
+      DEFAULT_OVERLAP: "100"
+      
+      # Performance Monitoring
+      ENABLE_PERFORMANCE_MONITORING: "true"
+      METRICS_RETENTION_DAYS: "30"
+      PERFORMANCE_ALERT_THRESHOLD: "10.0"
+      
+      # User Tier Limits
+      FREE_TIER_MONTHLY_LIMIT: "50"
+      FREE_TIER_MAX_FILE_SIZE_MB: "10"
+      FREE_TIER_MAX_STORAGE_GB: "1"
+      PREMIUM_TIER_MONTHLY_LIMIT: "500"
+      PREMIUM_TIER_MAX_FILE_SIZE_MB: "50"
+      PREMIUM_TIER_MAX_STORAGE_GB: "10"
+      ENTERPRISE_TIER_MONTHLY_LIMIT: "-1"
+      ENTERPRISE_TIER_MAX_FILE_SIZE_MB: "100"
+      ENTERPRISE_TIER_MAX_STORAGE_GB: "100"
+      
+      # Content Analysis Settings
+      ENABLE_CONTENT_ANALYSIS: "true"
+      CONTENT_ANALYSIS_TIMEOUT_SECONDS: "30"
+      AUTO_STRATEGY_SELECTION: "true"
+      
+      # Feature Flags
+      ENABLE_PARALLEL_PROCESSING: "true"
+      ENABLE_ANALYTICS_DASHBOARD: "true"
+      ENABLE_ADVANCED_CHUNKING: "true"
+      
+      # Security
+      SECRET_KEY: ${SECRET_KEY:-your-secret-key-change-in-production}
+      TOTP_SECRET_KEY: ${TOTP_SECRET_KEY:-your-totp-secret-change-in-production}
+      
+      # CORS
+      BACKEND_CORS_ORIGINS: '["http://localhost:3000","http://localhost:8080","http://localhost:4200"]'
+      
+      # First Superuser
+      FIRST_SUPERUSER: ${FIRST_SUPERUSER:-admin@vexel.com}
+      FIRST_SUPERUSER_PASSWORD: ${FIRST_SUPERUSER_PASSWORD:-admin123}
+      
+      # Development Settings
+      DEBUG: "false"
+      LOG_LEVEL: "INFO"
+      
+    volumes:
+      - ./app:/app
+      - uploaded_files:/app/uploads
+    depends_on:
+      - mongodb
+      - qdrant
+      - redis
+    networks:
+      - vexel-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Nginx Reverse Proxy (Optional)
+  nginx:
+    image: nginx:alpine
+    container_name: vexel-nginx-rag
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - backend
+    networks:
+      - vexel-network
+    profiles:
+      - production
+
+  # Monitoring with Prometheus (Optional)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: vexel-prometheus-rag
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    networks:
+      - vexel-network
+    profiles:
+      - monitoring
+
+  # Grafana for Visualization (Optional)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: vexel-grafana-rag
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin123
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    depends_on:
+      - prometheus
+    networks:
+      - vexel-network
+    profiles:
+      - monitoring
+
+volumes:
+  mongodb_data:
+    driver: local
+  qdrant_data:
+    driver: local
+  redis_data:
+    driver: local
+  uploaded_files:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+networks:
+  vexel-network:
+    driver: bridge
+
+# Usage:
+# Development: docker-compose -f docker-compose.rag.yml up -d
+# Production: docker-compose -f docker-compose.rag.yml --profile production up -d
+# With Monitoring: docker-compose -f docker-compose.rag.yml --profile monitoring up -d

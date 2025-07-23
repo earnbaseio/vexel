@@ -6,10 +6,27 @@ WORKDIR /app/
 ENV HATCH_ENV_TYPE_VIRTUAL_PATH=.venv
 RUN hatch env prune && hatch env create production && pip install --upgrade setuptools
 
-# /start Project-specific dependencies
-# RUN apt-get update && apt-get install -y --no-install-recommends \
-#  && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*	
-# WORKDIR /app/
+# /start Project-specific dependencies for RAG Optimization
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libmagic1 \
+    libmagic-dev \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# Install RAG optimization dependencies
+COPY requirements-rag.txt /app/requirements-rag.txt
+RUN pip install --no-cache-dir -r requirements-rag.txt
+
+# Install PyTorch CPU version for semantic chunking
+RUN pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+
+# Download NLTK data
+RUN python -c "import nltk; nltk.download('punkt', quiet=True); nltk.download('stopwords', quiet=True); nltk.download('averaged_perceptron_tagger', quiet=True)"
+
+# Download spaCy model (optional, with error handling)
+RUN pip install spacy && python -m spacy download en_core_web_sm || echo "spaCy model download failed, will use basic processing"
+
+WORKDIR /app/
 # /end Project-specific dependencies
 
 # For development, Jupyter remote kernel

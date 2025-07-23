@@ -21,7 +21,7 @@ class TestDataGenerator:
     @staticmethod
     def agent_config(
         name: str = "TestAgent",
-        model: str = "gemini/gemini-1.5-flash",
+        model: str = "gemini/gemini-2.5-flash-lite",
         **kwargs
     ) -> Dict[str, Any]:
         """Generate agent configuration"""
@@ -65,19 +65,19 @@ class TestDataGenerator:
         config = {
             "team_name": team_name,
             "mode": mode,
-            "leader_model": "gemini/gemini-1.5-flash",
+            "leader_model": "gemini/gemini-2.5-flash-lite",
             "user_id": "test_user",
             "agents": {
                 "researcher": {
                     "name": "Research Agent",
                     "role": "Expert at finding information",
-                    "model": "gemini/gemini-1.5-flash",
+                    "model": "gemini/gemini-2.5-flash-lite",
                     "tools": ["duckduckgo_search"]
                 },
                 "analyst": {
                     "name": "Analysis Agent",
                     "role": "Expert at analyzing data", 
-                    "model": "gemini/gemini-1.5-flash",
+                    "model": "gemini/gemini-2.5-flash-lite",
                     "tools": ["think", "analyze"]
                 }
             }
@@ -99,7 +99,7 @@ class TestDataGenerator:
                     "step_type": "agent",
                     "config": {
                         "name": "TestAgent1",
-                        "model": "gemini/gemini-1.5-flash"
+                        "model": "gemini/gemini-2.5-flash-lite"
                     },
                     "next_steps": ["step2"]
                 },
@@ -109,7 +109,7 @@ class TestDataGenerator:
                     "step_type": "agent",
                     "config": {
                         "name": "TestAgent2",
-                        "model": "gemini/gemini-1.5-flash"
+                        "model": "gemini/gemini-2.5-flash-lite"
                     }
                 }
             ]

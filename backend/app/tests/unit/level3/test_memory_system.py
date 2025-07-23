@@ -20,7 +20,7 @@ class TestMemorySystemSetup:
         with mock_manager.mock_external_apis():
             config = {
                 "name": "TestMemoryAgent",
-                "model": "gemini/gemini-1.5-flash",
+                "model": "gemini/gemini-2.5-flash-lite",
                 "user_id": "test_user",
                 "session_id": "test_session",
                 "db_file": "tmp/test_memory.db"
@@ -30,7 +30,7 @@ class TestMemorySystemSetup:
             agent = self._create_mock_memory_agent(config)
             
             assert agent["name"] == "TestMemoryAgent"
-            assert agent["model"] == "gemini/gemini-1.5-flash"
+            assert agent["model"] == "gemini/gemini-2.5-flash-lite"
             assert agent["user_id"] == "test_user"
             assert agent["session_id"] == "test_session"
     
@@ -53,14 +53,14 @@ class TestMemorySystemSetup:
         """Test memory manager initialization"""
         with mock_manager.mock_external_apis():
             manager_config = {
-                "model": "gemini/gemini-1.5-flash",
+                "model": "gemini/gemini-2.5-flash-lite",
                 "temperature": 0.3
             }
             
             # Mock memory manager
             manager = self._create_mock_memory_manager(manager_config)
             
-            assert manager["model"] == "gemini/gemini-1.5-flash"
+            assert manager["model"] == "gemini/gemini-2.5-flash-lite"
             assert manager["temperature"] == 0.3
             assert "instructions" in manager
     
@@ -68,14 +68,14 @@ class TestMemorySystemSetup:
         """Test session summarizer initialization"""
         with mock_manager.mock_external_apis():
             summarizer_config = {
-                "model": "gemini/gemini-1.5-flash",
+                "model": "gemini/gemini-2.5-flash-lite",
                 "temperature": 0.2
             }
             
             # Mock session summarizer
             summarizer = self._create_mock_session_summarizer(summarizer_config)
             
-            assert summarizer["model"] == "gemini/gemini-1.5-flash"
+            assert summarizer["model"] == "gemini/gemini-2.5-flash-lite"
             assert summarizer["temperature"] == 0.2
             assert "instructions" in summarizer
     

@@ -68,6 +68,7 @@ export interface IKnowledgeUploadRequest {
   file?: File;
   textContent?: string;
   url?: string;
+  collection_id: string;  // Required collection ID (Qdrant collection name)
 }
 
 // Knowledge Upload Response (matching backend FileUploadResponse)
@@ -90,6 +91,7 @@ export interface IKnowledgeTextUploadRequest {
   category: KnowledgeCategory;
   content: string;
   tags: string[];
+  collection_id: string;  // Required collection ID (Qdrant collection name)
 }
 
 // Knowledge URL Upload Request
@@ -99,6 +101,7 @@ export interface IKnowledgeUrlUploadRequest {
   category: KnowledgeCategory;
   url: string;
   tags: string[];
+  collection_id: string;  // Required collection ID (Qdrant collection name)
 }
 
 // Knowledge Search Request

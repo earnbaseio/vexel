@@ -124,7 +124,7 @@ async def list_agent_configurations(
                     agent_data['available_models'] = {
                         "openai": ["gpt-4", "gpt-4-turbo", "gpt-3.5-turbo"],
                         "anthropic": ["claude-3-5-sonnet-20241022", "claude-3-haiku-20240307", "claude-3-opus-20240229"],
-                        "gemini": ["gemini/gemini-2.5-flash-lite-preview-06-17", "gemini/gemini-1.5-pro", "gemini/gemini-1.5-flash"]
+                        "gemini": ["gemini/gemini-2.5-flash-lite"]
                     }
 
                 agent_response = AgentConfigurationResponse(
@@ -185,7 +185,7 @@ async def get_agent_configuration(
             agent_data['available_models'] = {
                 "openai": ["gpt-4", "gpt-4-turbo", "gpt-3.5-turbo"],
                 "anthropic": ["claude-3-5-sonnet-20241022", "claude-3-haiku-20240307", "claude-3-opus-20240229"],
-                "gemini": ["gemini/gemini-2.5-flash-lite-preview-06-17", "gemini/gemini-1.5-pro", "gemini/gemini-1.5-flash"]
+                "gemini": ["gemini/gemini-2.5-flash-lite"]
             }
 
         return AgentConfigurationResponse(
@@ -306,7 +306,7 @@ async def list_public_agent_configurations(
                     agent_data['available_models'] = {
                         "openai": ["gpt-4", "gpt-4-turbo", "gpt-3.5-turbo"],
                         "anthropic": ["claude-3-5-sonnet-20241022", "claude-3-haiku-20240307", "claude-3-opus-20240229"],
-                        "gemini": ["gemini/gemini-2.5-flash-lite-preview-06-17", "gemini/gemini-1.5-pro", "gemini/gemini-1.5-flash"]
+                        "gemini": ["gemini/gemini-2.5-flash-lite"]
                     }
 
                 agent_response = AgentConfigurationResponse(

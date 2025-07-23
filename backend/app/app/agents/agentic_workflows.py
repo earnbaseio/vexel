@@ -143,7 +143,7 @@ class VexelAgenticWorkflow(Workflow):
         self.memory = Memory(
             db=memory_db,
             model=LiteLLM(
-                id="gemini/gemini-1.5-flash",
+                id="gemini/gemini-2.5-flash-lite",
                 api_key=os.getenv("GEMINI_API_KEY"),
                 temperature=0.3
             ),
@@ -330,7 +330,7 @@ class VexelAgenticWorkflow(Workflow):
         if agent_key not in self.agents:
             agent = VexelMemoryReasoningAgent(
                 name=agent_config.get("name", f"WorkflowAgent_{step.step_id}"),
-                model=agent_config.get("model", "gemini/gemini-1.5-flash"),
+                model=agent_config.get("model", "gemini/gemini-2.5-flash-lite"),
                 user_id=self.user_id,
                 session_id=self.session_id,
                 db_file=self.db_file
@@ -368,7 +368,7 @@ class VexelAgenticWorkflow(Workflow):
             team = VexelTeamCollaboration(
                 team_name=team_config.get("name", f"WorkflowTeam_{step.step_id}"),
                 mode=team_config.get("mode", "coordinate"),
-                leader_model=team_config.get("leader_model", "gemini/gemini-1.5-flash"),
+                leader_model=team_config.get("leader_model", "gemini/gemini-2.5-flash-lite"),
                 user_id=self.user_id,
                 session_id=self.session_id,
                 db_file=self.db_file,
@@ -826,7 +826,7 @@ def create_research_analysis_workflow(
         team_config={
             "name": "ResearchTeam",
             "mode": "coordinate",
-            "leader_model": "gemini/gemini-1.5-flash"
+            "leader_model": "gemini/gemini-2.5-flash-lite"
         },
         task=f"Research comprehensive information about: {topic}",
         next_steps=["analysis_step"]
@@ -838,7 +838,7 @@ def create_research_analysis_workflow(
         name="Analysis Phase",
         agent_config={
             "name": "AnalysisAgent",
-            "model": "gemini/gemini-1.5-flash"
+            "model": "gemini/gemini-2.5-flash-lite"
         },
         task=f"Analyze the research findings and provide insights about: {topic}",
         next_steps=["report_step"]
@@ -850,7 +850,7 @@ def create_research_analysis_workflow(
         name="Report Generation",
         agent_config={
             "name": "ReportAgent",
-            "model": "gemini/gemini-1.5-flash"
+            "model": "gemini/gemini-2.5-flash-lite"
         },
         task="Generate a comprehensive report based on research and analysis results"
     )
@@ -878,7 +878,7 @@ def create_conditional_workflow(
         name="Initial Assessment",
         agent_config={
             "name": "AssessmentAgent",
-            "model": "gemini/gemini-1.5-flash"
+            "model": "gemini/gemini-2.5-flash-lite"
         },
         task="Assess the complexity of the given task and determine the approach",
         next_steps=["condition_step"]
@@ -903,7 +903,7 @@ def create_conditional_workflow(
         team_config={
             "name": "ComplexTeam",
             "mode": "collaborate",
-            "leader_model": "gemini/gemini-1.5-flash"
+            "leader_model": "gemini/gemini-2.5-flash-lite"
         },
         task="Handle complex task with team collaboration",
         conditions=[{
@@ -920,7 +920,7 @@ def create_conditional_workflow(
         name="Simple Task Handling",
         agent_config={
             "name": "SimpleAgent",
-            "model": "gemini/gemini-1.5-flash"
+            "model": "gemini/gemini-2.5-flash-lite"
         },
         task="Handle simple task with single agent",
         conditions=[{
@@ -937,7 +937,7 @@ def create_conditional_workflow(
         name="Final Processing",
         agent_config={
             "name": "FinalAgent",
-            "model": "gemini/gemini-1.5-flash"
+            "model": "gemini/gemini-2.5-flash-lite"
         },
         task="Finalize and summarize the results"
     )
@@ -968,7 +968,7 @@ def create_parallel_processing_workflow(
             "name": f"parallel_agent_{i}",
             "agent_config": {
                 "name": f"ParallelAgent_{i}",
-                "model": "gemini/gemini-1.5-flash"
+                "model": "gemini/gemini-2.5-flash-lite"
             },
             "task": task
         })
@@ -986,7 +986,7 @@ def create_parallel_processing_workflow(
         name="Result Aggregation",
         agent_config={
             "name": "AggregationAgent",
-            "model": "gemini/gemini-1.5-flash"
+            "model": "gemini/gemini-2.5-flash-lite"
         },
         task="Aggregate and synthesize results from parallel processing"
     )
@@ -1030,7 +1030,7 @@ def create_external_integration_workflow(
         name="External Data Processing",
         agent_config={
             "name": "DataProcessingAgent",
-            "model": "gemini/gemini-1.5-flash"
+            "model": "gemini/gemini-2.5-flash-lite"
         },
         task="Process and analyze data collected from external systems",
         next_steps=["output_step"]
@@ -1092,7 +1092,7 @@ def create_monitoring_workflow(
         name="Health Status Analysis",
         agent_config={
             "name": "MonitoringAgent",
-            "model": "gemini/gemini-1.5-flash"
+            "model": "gemini/gemini-2.5-flash-lite"
         },
         task="Analyze system health check results and identify issues",
         next_steps=["alert_condition"]
@@ -1134,7 +1134,7 @@ def create_monitoring_workflow(
         name="Generate Monitoring Report",
         agent_config={
             "name": "ReportAgent",
-            "model": "gemini/gemini-1.5-flash"
+            "model": "gemini/gemini-2.5-flash-lite"
         },
         task="Generate comprehensive monitoring report"
     )

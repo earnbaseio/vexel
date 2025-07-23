@@ -39,7 +39,7 @@ class AgentConfigurationBase(BaseModel):
 
     # Model configuration - using ai_ prefix to avoid Pydantic protected namespace conflicts
     ai_model_provider: str = Field("gemini", description="Model provider: gemini (default)")
-    ai_model_id: str = Field("gemini/gemini-2.5-flash-lite-preview-06-17", description="Model identifier")
+    ai_model_id: str = Field("gemini/gemini-2.5-flash-lite", description="Model identifier")
     ai_model_parameters: Dict[str, Any] = Field(
         default_factory=lambda: {"temperature": 0.7, "max_tokens": 1000},
         description="Model parameters"

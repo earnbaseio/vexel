@@ -1,8 +1,8 @@
 """
-Vexel Unified Agent - Agno Framework Aligned
+Vexel Agent - Agno Framework Aligned
 Combines Level 1+2+3 capabilities into a single comprehensive agent:
 - Level 1: Tools/Instructions
-- Level 2: Knowledge/Storage  
+- Level 2: Knowledge/Storage
 - Level 3: Memory/Reasoning
 """
 
@@ -23,9 +23,9 @@ import os
 from uuid import uuid4
 
 
-class VexelUnifiedAgent:
+class VexelAgent:
     """
-    Unified Vexel Agent with all L1+L2+L3 capabilities:
+    Vexel Agent with all L1+L2+L3 capabilities:
     
     Level 1 - Tools/Instructions:
     - Custom tools and reasoning capabilities
@@ -46,7 +46,7 @@ class VexelUnifiedAgent:
     def __init__(
         self,
         name: str = "VexelAgent",
-        model: str = "gemini/gemini-2.5-flash-lite-preview-06-17",
+        model: str = "gemini/gemini-2.5-flash-lite",
         user_id: str = "default",
         session_id: Optional[str] = None,
         knowledge_sources: Optional[List[Dict[str, Any]]] = None,
@@ -60,29 +60,23 @@ class VexelUnifiedAgent:
         
         # Initialize components
         self._setup_llm()
-        self._setup_tools(tools)
         self._setup_storage()
         self._setup_memory()
         self._setup_knowledge(knowledge_sources)
+        self._setup_tools(tools)  # Setup tools after knowledge so KnowledgeTools can be added
         
         # Agent instance (created on demand)
         self.agent = None
 
     def _setup_llm(self):
-        """Setup LiteLLM model"""
-        try:
-            self.llm = LiteLLM(
-                id=self.model,
-                api_key=self._get_api_key_for_model(self.model),
-                temperature=0.7
-            )
-        except Exception as e:
-            print(f"⚠️ Model setup failed, using fallback: {e}")
-            self.llm = LiteLLM(
-                id="gemini/gemini-1.5-flash",
-                api_key=os.getenv("GEMINI_API_KEY", "test-key"),
-                temperature=0.7
-            )
+        """Setup LiteLLM model - Gemini 2.0 Flash Exp only"""
+        print(f"🤖 DEBUG: Setting up LLM with model: {self.model}")
+        self.llm = LiteLLM(
+            id=self.model,
+            api_key=self._get_api_key_for_model(self.model),
+            temperature=0.7
+        )
+        print(f"✅ DEBUG: LLM setup successful with {self.model}")
 
     def _get_api_key_for_model(self, model: str) -> str:
         """Get appropriate API key for model"""
@@ -97,9 +91,12 @@ class VexelUnifiedAgent:
 
     def _setup_tools(self, custom_tools: Optional[List] = None):
         """Setup Level 1: Tools/Instructions"""
+        print(f"🔧 DEBUG: _setup_tools called with custom_tools: {custom_tools}")
         self.tools = custom_tools or []
-        
+        print(f"🔧 DEBUG: Initial tools list: {len(self.tools)} tools")
+
         # Add reasoning tools for Level 3 capabilities
+        print(f"🔧 DEBUG: Adding ReasoningTools...")
         reasoning_tools = ReasoningTools(
             think=True,
             analyze=True,
@@ -107,6 +104,45 @@ class VexelUnifiedAgent:
             add_few_shot=True
         )
         self.tools.append(reasoning_tools)
+        print(f"🔧 DEBUG: ReasoningTools added. Total tools: {len(self.tools)}")
+
+        # Add knowledge tools for Level 2 capabilities
+        print(f"🔍 DEBUG: Setting up knowledge tools. Knowledge bases count: {len(self.knowledge_bases) if self.knowledge_bases else 0}")
+        print(f"🔍 DEBUG: Knowledge bases: {[type(kb).__name__ for kb in self.knowledge_bases] if self.knowledge_bases else 'None'}")
+
+        if self.knowledge_bases:
+            print(f"🔍 DEBUG: Adding KnowledgeTools with knowledge base: {type(self.knowledge_bases[0])}")
+            print(f"🔍 DEBUG: Knowledge base details: {self.knowledge_bases[0]}")
+
+            try:
+                from agno.tools.knowledge import KnowledgeTools
+                knowledge_tools = KnowledgeTools(
+                    knowledge=self.knowledge_bases[0],  # Use first knowledge base
+                    think=True,
+                    search=True,
+                    analyze=True,
+                    add_instructions=True
+                )
+                self.tools.append(knowledge_tools)
+                print(f"✅ DEBUG: KnowledgeTools added successfully. Total tools: {len(self.tools)}")
+                print(f"✅ DEBUG: KnowledgeTools object: {knowledge_tools}")
+
+                # Test if knowledge tools have search method
+                if hasattr(knowledge_tools, 'search'):
+                    print(f"✅ DEBUG: KnowledgeTools has search method")
+                else:
+                    print(f"⚠️ DEBUG: KnowledgeTools missing search method")
+
+            except Exception as e:
+                print(f"❌ DEBUG: Failed to create KnowledgeTools: {e}")
+                import traceback
+                traceback.print_exc()
+        else:
+            print("⚠️ DEBUG: No knowledge bases found, skipping KnowledgeTools setup")
+
+        print(f"🔧 DEBUG: Final tools setup complete. Total tools: {len(self.tools)}")
+        for i, tool in enumerate(self.tools):
+            print(f"🔧 DEBUG: Tool {i+1}: {type(tool).__name__}")
 
     def _setup_storage(self):
         """Setup Level 2: Persistent Storage"""
@@ -126,12 +162,12 @@ class VexelUnifiedAgent:
         # Memory manager with Gemini
         memory_manager = MemoryManager(
             model=LiteLLM(
-                id="gemini/gemini-1.5-flash",
+                id="gemini/gemini-2.5-flash-lite",
                 api_key=os.getenv("GEMINI_API_KEY"),
                 temperature=0.3
             ),
             additional_instructions="""
-            You are managing memories for a Vexel Unified Agent. Focus on:
+            You are managing memories for a Vexel Agent. Focus on:
             - Store important facts, preferences, and insights about the user
             - Capture key decisions and reasoning patterns
             - Remember context and relationships between concepts
@@ -143,7 +179,7 @@ class VexelUnifiedAgent:
         # Session summarizer
         session_summarizer = SessionSummarizer(
             model=LiteLLM(
-                id="gemini/gemini-1.5-flash",
+                id="gemini/gemini-2.5-flash-lite",
                 api_key=os.getenv("GEMINI_API_KEY"),
                 temperature=0.2
             ),
@@ -168,54 +204,104 @@ class VexelUnifiedAgent:
     def _setup_knowledge(self, knowledge_sources: Optional[List[Dict[str, Any]]] = None):
         """Setup Level 2: Knowledge/Storage"""
         self.knowledge_bases = []
-        
+
+        print(f"🔍 DEBUG: Setting up knowledge. Sources provided: {knowledge_sources}")
         if not knowledge_sources:
+            print("⚠️ DEBUG: No knowledge sources provided")
             return
             
-        # Setup Qdrant vector database
-        vector_db = Qdrant(
-            url=os.getenv("QDRANT_URL", "http://localhost:6333"),
-            collection_name=f"vexel_unified_{self.name.lower()}",
-            embedder=GeminiEmbedder(
-                model="models/text-embedding-004",
-                api_key=os.getenv("GEMINI_API_KEY")
-            )
-        )
-        
+        # Process each knowledge source
         for source in knowledge_sources:
             try:
+                print(f"🔍 DEBUG: Processing knowledge source: {source}")
+
                 # Handle both dict and Pydantic model
                 if hasattr(source, 'type'):
                     source_type = source.type
-                    source_urls = source.urls
+                    source_collection_name = getattr(source, 'collection_name', None)
+                    source_urls = getattr(source, 'urls', None)
                 else:
-                    source_type = source["type"]
-                    source_urls = source["urls"]
+                    source_type = source.get("type")
+                    source_collection_name = source.get("collection_name")
+                    source_urls = source.get("urls")
 
-                if source_type == "url":
+                print(f"🔍 DEBUG: Source type: {source_type}, collection_name: {source_collection_name}")
+
+                if source_type == "collection" and source_collection_name:
+                    # Use existing knowledge collection
+                    print(f"🔍 DEBUG: Creating knowledge base for collection: {source_collection_name}")
+                    from app.agents.knowledge import VexelKnowledgeManager
+
+                    knowledge_manager = VexelKnowledgeManager(
+                        collection_name=source_collection_name,
+                        user_id=self.user_id,
+                        unified_collection=True
+                    )
+                    kb = knowledge_manager.create_unified_knowledge_base()
+                    self.knowledge_bases.append(kb)
+                    print(f"✅ Knowledge source loaded: collection '{source_collection_name}'")
+
+                elif source_type == "url" and source_urls:
+                    # Setup Qdrant vector database for URL sources
+                    vector_db = Qdrant(
+                        collection=f"vexel_unified_{self.name.lower()}_url",
+                        url=os.getenv("QDRANT_URL", "http://localhost:6333"),
+                        embedder=GeminiEmbedder(
+                            id="text-embedding-004",
+                            api_key=os.getenv("GEMINI_API_KEY")
+                        )
+                    )
+
                     knowledge = UrlKnowledge(
                         urls=source_urls,
                         vector_db=vector_db
                     )
-                elif source_type == "pdf_url":
+                    self.knowledge_bases.append(knowledge)
+                    print(f"✅ Knowledge source loaded: {source_type}")
+
+                elif source_type == "pdf_url" and source_urls:
+                    # Setup Qdrant vector database for PDF URL sources
+                    vector_db = Qdrant(
+                        collection=f"vexel_unified_{self.name.lower()}_pdf",
+                        url=os.getenv("QDRANT_URL", "http://localhost:6333"),
+                        embedder=GeminiEmbedder(
+                            id="text-embedding-004",
+                            api_key=os.getenv("GEMINI_API_KEY")
+                        )
+                    )
+
                     knowledge = PDFUrlKnowledgeBase(
                         urls=source_urls,
                         vector_db=vector_db
                     )
+                    self.knowledge_bases.append(knowledge)
+                    print(f"✅ Knowledge source loaded: {source_type}")
                 else:
-                    continue
-
-                self.knowledge_bases.append(knowledge)
-                print(f"✅ Knowledge source loaded: {source_type}")
+                    print(f"⚠️ DEBUG: Unsupported or incomplete knowledge source: type={source_type}")
 
             except Exception as e:
                 print(f"⚠️ Failed to load knowledge source {source}: {e}")
+                import traceback
+                traceback.print_exc()
 
     def create_agent(self) -> Agent:
         """Create unified agent with all L1+L2+L3 capabilities"""
+        print(f"🚀 DEBUG: create_agent called")
+        print(f"🚀 DEBUG: Available knowledge bases: {len(self.knowledge_bases)}")
+        print(f"🚀 DEBUG: Available tools: {len(self.tools)}")
+
         # Use first knowledge base if available
         knowledge = self.knowledge_bases[0] if self.knowledge_bases else None
-        
+        print(f"🚀 DEBUG: Selected knowledge base: {type(knowledge).__name__ if knowledge else 'None'}")
+
+        print(f"🚀 DEBUG: Creating Agent with:")
+        print(f"   - name: {self.name}")
+        print(f"   - model: {self.model}")
+        print(f"   - user_id: {self.user_id}")
+        print(f"   - session_id: {self.session_id}")
+        print(f"   - tools: {len(self.tools)} tools")
+        print(f"   - knowledge: {type(knowledge).__name__ if knowledge else 'None'}")
+
         self.agent = Agent(
             name=self.name,
             model=self.llm,
@@ -251,7 +337,10 @@ class VexelUnifiedAgent:
             show_tool_calls=True,
             debug_mode=True
         )
-        
+
+        print(f"🚀 DEBUG: Agent created successfully: {type(self.agent)}")
+        print(f"🚀 DEBUG: Agent tools: {[tool.__class__.__name__ for tool in self.agent.tools] if hasattr(self.agent, 'tools') and self.agent.tools else 'No tools'}")
+
         return self.agent
 
     def _get_unified_instructions(self) -> List[str]:
@@ -270,7 +359,10 @@ class VexelUnifiedAgent:
             "- Combine reasoning with knowledge search for comprehensive answers",
             "",
             "KNOWLEDGE USAGE:",
-            "- Always search your knowledge base for relevant information",
+            "- ALWAYS search your knowledge base first before answering any question",
+            "- Use the search() tool to find relevant information in your knowledge base",
+            "- Your knowledge base contains information about Vexel AI platform, architecture, and technical details",
+            "- Even if you think you know the answer, ALWAYS search to get the most accurate and up-to-date information",
             "- Cite sources and provide accurate, well-researched responses",
             "- Combine knowledge search results with your reasoning process",
             "",
@@ -287,20 +379,73 @@ class VexelUnifiedAgent:
         ]
 
     def chat(self, message: str) -> str:
-        """Chat with the unified agent"""
-        if not self.agent:
-            self.create_agent()
+        """Chat with the unified agent with retry logic for Gemini errors"""
+        print(f"💬 DEBUG: chat() called with message: '{message[:100]}...'")
 
-        try:
-            response = self.agent.run(message)
-            if hasattr(response, 'content'):
-                return response.content
-            elif hasattr(response, 'text'):
-                return response.text
-            else:
-                return str(response) if response else "No response generated"
-        except Exception as e:
-            return f"Error generating response: {str(e)}"
+        if not self.agent:
+            print(f"💬 DEBUG: Agent not created yet, creating...")
+            self.create_agent()
+        else:
+            print(f"💬 DEBUG: Using existing agent: {type(self.agent)}")
+
+        # Retry logic for Gemini/VertexAI intermittent errors
+        max_retries = 3
+        retry_delay = 2  # seconds
+
+        for attempt in range(max_retries):
+            try:
+                print(f"💬 DEBUG: Attempt {attempt + 1}/{max_retries} - Calling agent.run() with message")
+                print(f"💬 DEBUG: Agent has tools: {len(self.agent.tools) if hasattr(self.agent, 'tools') and self.agent.tools else 0}")
+
+                response = self.agent.run(message)
+
+                print(f"💬 DEBUG: Agent response received: {type(response)}")
+                print(f"💬 DEBUG: Response success on attempt {attempt + 1}")
+
+                if hasattr(response, 'content'):
+                    print(f"💬 DEBUG: Using response.content")
+                    return response.content
+                elif hasattr(response, 'text'):
+                    print(f"💬 DEBUG: Using response.text")
+                    return response.text
+                else:
+                    print(f"💬 DEBUG: Converting response to string")
+                    return str(response) if response else "No response generated"
+
+            except Exception as e:
+                error_str = str(e)
+                print(f"❌ DEBUG: Error in chat() attempt {attempt + 1}: {e}")
+
+                # Check if it's a retryable Gemini/VertexAI error
+                retryable_errors = [
+                    "VertexAIException InternalServerError",
+                    "InternalServerError",
+                    "Internal error",
+                    "Service temporarily unavailable",
+                    "Rate limit exceeded",
+                    "Quota exceeded"
+                ]
+
+                is_retryable = any(error_pattern in error_str for error_pattern in retryable_errors)
+
+                if is_retryable and attempt < max_retries - 1:  # Not the last attempt
+                    print(f"🔄 DEBUG: Retryable Gemini error detected, retrying in {retry_delay}s...")
+                    import time
+                    time.sleep(retry_delay)
+                    retry_delay *= 1.5  # Exponential backoff
+                    continue
+                else:
+                    # Either non-retryable error or max retries reached
+                    if attempt == max_retries - 1:
+                        print(f"❌ DEBUG: Max retries ({max_retries}) reached for Gemini API")
+                        return f"I apologize, but I'm experiencing temporary issues with the AI service. Please try again in a moment. (Gemini API error after {max_retries} attempts)"
+                    else:
+                        print(f"❌ DEBUG: Non-retryable error encountered")
+                        import traceback
+                        traceback.print_exc()
+                        return f"Error generating response: {str(e)}"
+
+        return "Failed to generate response after multiple attempts"
 
     def get_agent_info(self) -> Dict[str, Any]:
         """Get information about the agent's capabilities"""

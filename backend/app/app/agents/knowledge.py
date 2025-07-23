@@ -10,6 +10,7 @@ from agno.knowledge.text import TextKnowledgeBase
 from agno.knowledge.pdf_url import PDFUrlKnowledgeBase
 from agno.knowledge.url import UrlKnowledge
 from agno.knowledge.document import DocumentKnowledgeBase
+from app.agents.fixed_document_knowledge import VexelDocumentKnowledgeBase
 from agno.vectordb.qdrant import Qdrant
 from agno.embedder.openai import OpenAIEmbedder
 from app.agents.gemini_embedder import GeminiEmbedder
@@ -26,21 +27,24 @@ class VexelKnowledgeManager:
     
     def __init__(
         self,
-        collection_name: str = "vexel_knowledge_base",  # Default to unified collection
+        collection_name: str = None,  # Specific collection name or None for default
         qdrant_url: str = "http://localhost:6333",
         embedder_type: str = "gemini",  # "gemini" (default)
         embedder_model: str = "text-embedding-004",
-        user_id: str = None,  # For user filtering in unified collection
-        unified_collection: bool = True  # Use unified collection by default
+        user_id: str = None  # For user isolation
     ):
         self.user_id = user_id
-        self.unified_collection = unified_collection
 
-        # Use unified collection for cross-file search
-        if unified_collection:
-            self.collection_name = "vexel_knowledge_base"
-        else:
+        # Set collection name with user isolation
+        if collection_name:
+            # Use specific collection name (already includes user_id if needed)
             self.collection_name = collection_name
+        else:
+            # Default collection with user isolation
+            if user_id:
+                self.collection_name = f"user_{user_id}_vexel_knowledge_base"
+            else:
+                self.collection_name = "vexel_knowledge_base"
 
         self.qdrant_url = qdrant_url
 
@@ -69,17 +73,32 @@ class VexelKnowledgeManager:
         Create knowledge base with unified collection and user filtering
         For cross-file search capabilities
         """
+        print(f"📚 DEBUG: create_unified_knowledge_base called")
+        print(f"📚 DEBUG: user_id: {self.user_id}")
+        print(f"📚 DEBUG: file_ids: {file_ids}")
+        print(f"📚 DEBUG: collection_name: {self.collection_name}")
+        print(f"📚 DEBUG: vector_db: {type(self.vector_db)}")
+
         filters = {}
         if self.user_id:
-            filters["user_id"] = self.user_id
+            filters["meta_data.user_id"] = self.user_id
+            print(f"📚 DEBUG: Added user_id filter: {self.user_id}")
         if file_ids:
-            filters["file_id"] = {"$in": file_ids}
+            filters["meta_data.file_id"] = {"$in": file_ids}
+            print(f"📚 DEBUG: Added file_ids filter: {file_ids}")
 
-        return DocumentKnowledgeBase(
+        print(f"📚 DEBUG: Final filters: {filters}")
+
+        kb = VexelDocumentKnowledgeBase(
             documents=[],  # Empty - will search existing vectors
             vector_db=self.vector_db,
             filters=filters
         )
+
+        print(f"📚 DEBUG: VexelDocumentKnowledgeBase created: {type(kb)}")
+        print(f"📚 DEBUG: Knowledge base vector_db: {type(kb.vector_db) if hasattr(kb, 'vector_db') else 'No vector_db'}")
+
+        return kb
 
     def create_text_knowledge_base(
         self,
