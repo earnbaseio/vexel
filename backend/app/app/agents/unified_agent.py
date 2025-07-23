@@ -6,8 +6,9 @@ Combines Level 1+2+3 capabilities into a single comprehensive agent:
 - Level 3: Memory/Reasoning
 """
 
-from typing import List, Dict, Any, Optional, Union
+from typing import List, Dict, Any, Optional, Union, Iterator, AsyncIterator
 from agno.agent import Agent
+from agno.run.response import RunResponseEvent
 from agno.models.litellm import LiteLLM
 from agno.memory.v2.memory import Memory
 from agno.memory.v2.db.sqlite import SqliteMemoryDb
@@ -468,3 +469,111 @@ class VexelAgent:
                 "L3_reasoning": True
             }
         }
+
+    def chat_stream(
+        self,
+        message: str,
+        stream_intermediate_steps: bool = True
+    ) -> Iterator[RunResponseEvent]:
+        """
+        Stream chat with the unified agent
+
+        Args:
+            message: User message
+            stream_intermediate_steps: Whether to stream tool calls, reasoning steps, etc.
+
+        Yields:
+            RunResponseEvent: Streaming events including:
+                - run_started: Run begins
+                - reasoning_started/step/completed: Thinking process
+                - tool_call_started/completed: Tool execution
+                - run_response_content: Content chunks
+                - run_completed: Run finished
+        """
+        print(f"💬 DEBUG: chat_stream() called with message: '{message[:100]}...'")
+
+        if not self.agent:
+            print(f"💬 DEBUG: Agent not created yet, creating...")
+            self.create_agent()
+        else:
+            print(f"💬 DEBUG: Using existing agent: {type(self.agent)}")
+
+        # Use Agno's streaming capabilities
+        try:
+            print(f"💬 DEBUG: Starting agent.run() with streaming")
+            response_stream = self.agent.run(
+                message=message,
+                stream=True,
+                stream_intermediate_steps=stream_intermediate_steps
+            )
+
+            print(f"💬 DEBUG: Got response stream: {type(response_stream)}")
+
+            for event in response_stream:
+                print(f"💬 DEBUG: Yielding event: {event.event}")
+                yield event
+
+        except Exception as e:
+            print(f"❌ DEBUG: Error in chat_stream(): {e}")
+            # Create error event
+            from agno.run.response import RunResponseErrorEvent
+            yield RunResponseErrorEvent(
+                content=f"Streaming error: {str(e)}",
+                agent_id=self.agent.agent_id if self.agent else "unknown",
+                agent_name=self.name,
+                session_id=self.session_id
+            )
+
+    async def achat_stream(
+        self,
+        message: str,
+        stream_intermediate_steps: bool = True
+    ) -> AsyncIterator[RunResponseEvent]:
+        """
+        Async stream chat with the unified agent
+
+        Args:
+            message: User message
+            stream_intermediate_steps: Whether to stream tool calls, reasoning steps, etc.
+
+        Yields:
+            RunResponseEvent: Streaming events including:
+                - run_started: Run begins
+                - reasoning_started/step/completed: Thinking process
+                - tool_call_started/completed: Tool execution
+                - run_response_content: Content chunks
+                - run_completed: Run finished
+        """
+        print(f"💬 DEBUG: achat_stream() called with message: '{message[:100]}...'")
+
+        if not self.agent:
+            print(f"💬 DEBUG: Agent not created yet, creating...")
+            self.create_agent()
+        else:
+            print(f"💬 DEBUG: Using existing agent: {type(self.agent)}")
+
+        # Use Agno's async streaming capabilities
+        try:
+            print(f"💬 DEBUG: Starting agent.arun() with streaming")
+            response_stream = await self.agent.arun(
+                message=message,
+                stream=True,
+                stream_intermediate_steps=stream_intermediate_steps
+            )
+
+            print(f"💬 DEBUG: Got async response stream: {type(response_stream)}")
+
+            async for event in response_stream:
+                print(f"💬 DEBUG: Yielding async event: {event.event}")
+                yield event
+
+        except Exception as e:
+            print(f"❌ DEBUG: Error in achat_stream(): {e}")
+            # Create error event
+            from agno.run.response import RunResponseErrorEvent
+            yield RunResponseErrorEvent(
+                content=f"Async streaming error: {str(e)}",
+                agent_id=self.agent.agent_id if self.agent else "unknown",
+                agent_name=self.name,
+                session_id=self.session_id
+            )

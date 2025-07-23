@@ -4,9 +4,11 @@ Vexel AI Agents API Endpoints
 
 from typing import Any, List, Dict, Optional, Literal
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, UploadFile, File
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 import asyncio
 import os
+import json
 from io import BytesIO
 from datetime import datetime
 import logging
@@ -17,6 +19,7 @@ from app.api.deps import get_current_user
 from app.models.user import User
 
 from app.agents.unified_agent import VexelAgent
+from agno.run.response import RunEvent
 from app.agents.knowledge import VexelKnowledgeManager
 from app.agents.cross_file_knowledge import VexelCrossFileKnowledge, knowledge_cache
 from agno.knowledge.combined import CombinedKnowledgeBase
@@ -61,6 +64,8 @@ class UnifiedChatRequest(BaseModel):
     message: str
     agent_id: str  # Required: Reference to existing AgentConfiguration
     conversation_id: Optional[str] = None  # If None, creates new conversation
+    stream: Optional[bool] = False  # Enable streaming response
+    stream_intermediate_steps: Optional[bool] = True  # Stream tool calls, reasoning, etc.
 
 # AgentRequest removed - use UnifiedChatRequest
 
@@ -81,6 +86,19 @@ class UnifiedChatResponse(BaseModel):
     sources: Optional[List[str]] = None
     metadata: Optional[Dict[str, Any]] = None
     status: str
+
+class StreamingChatEvent(BaseModel):
+    """Individual streaming event"""
+    event: str  # Event type (run_started, run_response_content, tool_call_started, etc.)
+    content: Optional[str] = None  # Content chunk
+    thinking: Optional[str] = None  # Thinking content
+    tool_name: Optional[str] = None  # Tool being called
+    tool_args: Optional[Dict[str, Any]] = None  # Tool arguments
+    tool_result: Optional[str] = None  # Tool result
+    reasoning_step: Optional[str] = None  # Reasoning step
+    message_id: Optional[str] = None
+    conversation_id: Optional[str] = None
+    metadata: Optional[Dict[str, Any]] = None
 
 
 class WorkflowRequest(BaseModel):
@@ -359,6 +377,73 @@ async def get_agents_info(current_user: User = Depends(get_current_user)):
     }
 
 
+async def generate_streaming_response(
+    agent: VexelAgent,
+    message: str,
+    conversation_id: str,
+    message_id: str,
+    stream_intermediate_steps: bool = True
+):
+    """Generate Server-Sent Events for streaming chat response"""
+    try:
+        # Stream events from VexelAgent
+        for event in agent.chat_stream(message, stream_intermediate_steps):
+            # Convert Agno RunResponseEvent to our streaming format
+            streaming_event = {
+                "event": event.event,
+                "message_id": message_id,
+                "conversation_id": conversation_id,
+                "metadata": {
+                    "agent_id": getattr(event, 'agent_id', ''),
+                    "agent_name": getattr(event, 'agent_name', ''),
+                    "session_id": getattr(event, 'session_id', ''),
+                    "timestamp": datetime.now().isoformat()
+                }
+            }
+
+            # Add event-specific data
+            if event.event == RunEvent.run_response_content:
+                streaming_event["content"] = getattr(event, 'content', '')
+                streaming_event["thinking"] = getattr(event, 'thinking', None)
+
+            elif event.event == RunEvent.tool_call_started:
+                streaming_event["tool_name"] = getattr(event, 'tool_name', '')
+                streaming_event["tool_args"] = getattr(event, 'tool_args', {})
+
+            elif event.event == RunEvent.tool_call_completed:
+                streaming_event["tool_name"] = getattr(event, 'tool_name', '')
+                streaming_event["tool_result"] = getattr(event, 'tool_result', '')
+
+            elif event.event in [RunEvent.reasoning_step]:
+                streaming_event["reasoning_step"] = getattr(event, 'content', '')
+
+            # Send as Server-Sent Event
+            yield f"data: {json.dumps(streaming_event)}\n\n"
+
+        # Send completion event
+        completion_event = {
+            "event": "stream_completed",
+            "message_id": message_id,
+            "conversation_id": conversation_id,
+            "metadata": {
+                "timestamp": datetime.now().isoformat()
+            }
+        }
+        yield f"data: {json.dumps(completion_event)}\n\n"
+
+    except Exception as e:
+        # Send error event
+        error_event = {
+            "event": "stream_error",
+            "error": str(e),
+            "message_id": message_id,
+            "conversation_id": conversation_id,
+            "metadata": {
+                "timestamp": datetime.now().isoformat()
+            }
+        }
+        yield f"data: {json.dumps(error_event)}\n\n"
+
 @router.post("/chat", response_model=UnifiedChatResponse)
 async def agent_chat(
     request: UnifiedChatRequest,
@@ -444,8 +529,31 @@ async def agent_chat(
             )
             session_agents[conversation_id] = agent
 
-        # Chat with agent
-        print(f"💬 DEBUG: Starting chat with agent")
+        # Check if streaming is requested
+        if request.stream:
+            print(f"💬 DEBUG: Starting streaming chat with agent")
+            print(f"💬 DEBUG: Agent type: {type(agent)}")
+            print(f"💬 DEBUG: Message: '{request.message[:100]}...'")
+
+            # Return streaming response
+            return StreamingResponse(
+                generate_streaming_response(
+                    agent=agent,
+                    message=request.message,
+                    conversation_id=conversation_id,
+                    message_id=str(uuid4()),
+                    stream_intermediate_steps=request.stream_intermediate_steps or True
+                ),
+                media_type="text/event-stream",
+                headers={
+                    "Cache-Control": "no-cache",
+                    "Connection": "keep-alive",
+                    "Access-Control-Allow-Origin": "*",
+                }
+            )
+
+        # Non-streaming chat (existing logic)
+        print(f"💬 DEBUG: Starting non-streaming chat with agent")
         print(f"💬 DEBUG: Agent type: {type(agent)}")
         print(f"💬 DEBUG: Message: '{request.message[:100]}...'")
 

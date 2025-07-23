@@ -367,7 +367,7 @@ export const chatAPI = {
   // ============================================================================
 
   /**
-   * Send a chat message using unified chat endpoint
+   * Send a chat message using agents chat endpoint
    */
   async sendMessage(data: IChatRequest, token: string): Promise<IChatResponse> {
     const res = await fetch(`${apiCore.url}/agents/chat`, {

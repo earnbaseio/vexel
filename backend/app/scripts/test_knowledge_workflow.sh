@@ -202,7 +202,7 @@ create_agent_with_knowledge() {
                 \"enabled\": true
             }],
             \"ai_model_provider\": \"gemini\",
-            \"ai_model_id\": \"gemini/gemini-2.0-flash-exp\",
+            \"ai_model_id\": \"gemini/gemini-2.5-flash-lite\",
             \"ai_model_parameters\": {\"temperature\": 0.7, \"max_tokens\": 1000},
             \"enable_knowledge_search\": true
         }")
